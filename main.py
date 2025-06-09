@@ -1,6 +1,6 @@
 from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 import httpx, os, uuid
-from fastapi import FastAPI, Query, HTTPException 
+from fastapi import FastAPI, Query, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -29,39 +29,29 @@ MIME_TYPES = {
     "720": "video/mp4",
     "1080": "video/mp4",
 }
-
+# Proxy endpoint to stream or download from public API
 @app.get("/proxy")
-async def stream_media(
-    url: str = Query(..., description="YouTube video URL"),
-    ext: str = Query("mp3", description="Format: mp3, 480, 720, 1080"),
-    filename: str = Query("media", description="Filename without extension"),
+async def proxy_download(
+    url: str = Query(..., description="YouTube URL"),
+    format: str = Query("mp3", description="Format: mp3, 480, 720, 1080"),
+    filename: str = Query("media", description="Optional filename (without extension)")
 ):
-    ext = ext.lower()
-    if ext not in MIME_TYPES:
-        raise HTTPException(status_code=400, detail="Unsupported format")
+    api_url = f"https://gpt76.vercel.app/download?url={url}&format={format}"
+    ext = "mp3" if format == "mp3" else "mp4"
+    file_name = f"{filename}.{ext}"
 
-    async with httpx.AsyncClient() as client:
-        res = await client.get(API_URL, params={"url": url})
-        if res.status_code != 200:
-            raise HTTPException(status_code=502, detail="Failed to fetch data from public API")
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(api_url, timeout=60.0)
+            if resp.status_code != 200:
+                return JSONResponse(content={"error": "Failed to fetch video"}, status_code=400)
 
-        data = res.json()
-        stream_url = data.get(ext if ext != "mp3" else "audio")
+            headers = {
+                "Content-Disposition": f'attachment; filename="{file_name}"',
+                "Content-Type": "audio/mpeg" if ext == "mp3" else "video/mp4",
+            }
 
-        if not stream_url:
-            raise HTTPException(status_code=404, detail=f"{ext.upper()} format not available")
+            return StreamingResponse(resp.aiter_bytes(), headers=headers)
 
-        # Proxy stream
-        stream_response = await client.get(stream_url)
-        if stream_response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Failed to fetch stream")
-
-    headers = {
-        "Content-Disposition": f'attachment; filename="{filename}.{ext}"'
-    }
-
-    return StreamingResponse(
-        iter([stream_response.content]),
-        media_type=MIME_TYPES[ext],
-        headers=headers
-    )
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
