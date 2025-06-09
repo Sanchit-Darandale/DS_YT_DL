@@ -1,85 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DS YouTube Downloader</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        input[type="text"] {
-            width: 300px;
-            padding: 10px;
-            margin-right: 10px;
-        }
-        button {
-            padding: 10px 15px;
-            margin: 5px;
-            cursor: pointer;
-        }
-        .download-links {
-            margin-top: 20px;
-        }
-        .download-links a {
-            display: block;
-            margin: 5px 0;
-            text-decoration: none;
-            color: #007BFF;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YouTube Downloader</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 16px;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 1rem;
+      margin-top: 10px;
+      width: 100%;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    img {
+      max-width: 100%;
+      margin-top: 20px;
+      border-radius: 8px;
+    }
+    .section {
+      margin-top: 30px;
+    }
+    a.download {
+      display: inline-block;
+      margin-top: 10px;
+      text-decoration: underline;
+      color: #007bff;
+    }
+  </style>
 </head>
 <body>
 
-    <h1>DS YouTube Downloader</h1>
-    <input type="text" id="youtubeLink" placeholder="Enter YouTube Video URL" />
-    <button onclick="getDownloadLinks()">Get Download Links</button>
+  <h1>YouTube Downloader</h1>
 
-    <div class="download-links" id="downloadLinks"></div>
+  <input type="text" id="urlInput" placeholder="Enter YouTube video URL..." />
+  <button onclick="fetchData()">Download</button>
 
-    <script>
-        async function getDownloadLinks() {
-            const url = document.getElementById('youtubeLink').value;
-            const downloadLinksDiv = document.getElementById('downloadLinks');
-            downloadLinksDiv.innerHTML = ''; // Clear previous links
+  <div id="result" class="section"></div>
 
-            if (!url) {
-                alert('Please enter a YouTube URL.');
-                return;
-            }
+  <script>
+    async function fetchData() {
+      const url = document.getElementById('urlInput').value;
+      const result = document.getElementById('result');
+      result.innerHTML = 'Loading...';
 
-            try {
-                // Fetch download links from the public API
-                const audioResponse = await fetch(`https://gpt76.vercel.app/download?url=${encodeURIComponent(url)}`);
-                const audioData = await audioResponse.json();
+      try {
+        const res = await fetch(`https://gpt76.vercel.app/download?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
 
-                // Check if audio data is available
-                if (audioData.audio) {
-                    const audioLink = audioData.audio; // Assuming the API returns a direct audio link
-                    downloadLinksDiv.innerHTML += `<a href="${audioLink}" download>Download Audio (MP3)</a>`;
-                }
-
-                // Fetch video links for different qualities
-                const videoQualities = ['480p', '720p', '1080p'];
-                for (const quality of videoQualities) {
-                    const videoResponse = await fetch(`https://gpt76.vercel.app/download?url=${encodeURIComponent(url)}&quality=${quality}`);
-                    const videoData = await videoResponse.json();
-
-                    // Check if video data is available
-                    if (videoData.video) {
-                        const videoLink = videoData.video; // Assuming the API returns a direct video link
-                        downloadLinksDiv.innerHTML += `<a href="${videoLink}" download>Download Video (${quality})</a>`;
-                    }
-                }
-            } catch (error) {
-                console.error('Error fetching download links:', error);
-                alert('Failed to fetch download links. Please try again later.');
-            }
+        if (!data.success) {
+          result.innerHTML = '<p style="color:red;">Error: Could not fetch video data.</p>';
+          return;
         }
-    </script>
+
+        const title = data.title;
+        const thumb = data.thumbnail;
+        const medias = data.medias;
+
+        const audio = medias.find(m => m.type === 'audio' || m.audioQuality);
+        const video480 = medias.find(m => m.label.includes('480'));
+        const video720 = medias.find(m => m.label.includes('720'));
+        const video1080 = medias.find(m => m.label.includes('1080'));
+
+        let html = `
+          <h2>${title}</h2>
+          <img src="${thumb}" alt="Thumbnail" />
+        `;
+
+        if (audio) {
+          html += `
+            <div class="section">
+              <h3>MP3 Audio</h3>
+              <audio controls src="${audio.url}" style="width: 100%;"></audio>
+              <br/>
+              <a class="download" href="${audio.url}" download>Download MP3</a>
+            </div>
+          `;
+        }
+
+        if (video480) {
+          html += `
+            <div class="section">
+              <h3>Video 480p</h3>
+              <video controls src="${video480.url}" style="width: 100%; max-height: 300px;"></video>
+              <br/>
+              <a class="download" href="${video480.url}" download>Download 480p</a>
+            </div>
+          `;
+        }
+
+        if (video720) {
+          html += `
+            <div class="section">
+              <h3>Video 720p</h3>
+              <a class="download" href="${video720.url}" download>Download 720p</a>
+            </div>
+          `;
+        }
+
+        if (video1080) {
+          html += `
+            <div class="section">
+              <h3>Video 1080p</h3>
+              <a class="download" href="${video1080.url}" download>Download 1080p</a>
+            </div>
+          `;
+        }
+
+        result.innerHTML = html;
+
+      } catch (err) {
+        result.innerHTML = '<p style="color:red;">An error occurred while fetching data.</p>';
+      }
+    }
+  </script>
 
 </body>
 </html>
