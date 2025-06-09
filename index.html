@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DS YouTube Downloader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        input[type="text"] {
+            width: 300px;
+            padding: 10px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .download-links {
+            margin-top: 20px;
+        }
+        .download-links a {
+            display: block;
+            margin: 5px 0;
+            text-decoration: none;
+            color: #007BFF;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>DS YouTube Downloader</h1>
+    <input type="text" id="youtubeLink" placeholder="Enter YouTube Video URL" />
+    <button onclick="getDownloadLinks()">Get Download Links</button>
+
+    <div class="download-links" id="downloadLinks"></div>
+
+    <script>
+        async function getDownloadLinks() {
+            const url = document.getElementById('youtubeLink').value;
+            const downloadLinksDiv = document.getElementById('downloadLinks');
+            downloadLinksDiv.innerHTML = ''; // Clear previous links
+
+            if (!url) {
+                alert('Please enter a YouTube URL.');
+                return;
+            }
+
+            try {
+                // Fetch download links from the public API
+                const audioResponse = await fetch(`https://gpt76.vercel.app/download?url=${encodeURIComponent(url)}`);
+                const audioData = await audioResponse.json();
+
+                // Check if audio data is available
+                if (audioData.audio) {
+                    const audioLink = audioData.audio; // Assuming the API returns a direct audio link
+                    downloadLinksDiv.innerHTML += `<a href="${audioLink}" download>Download Audio (MP3)</a>`;
+                }
+
+                // Fetch video links for different qualities
+                const videoQualities = ['480p', '720p', '1080p'];
+                for (const quality of videoQualities) {
+                    const videoResponse = await fetch(`https://gpt76.vercel.app/download?url=${encodeURIComponent(url)}&quality=${quality}`);
+                    const videoData = await videoResponse.json();
+
+                    // Check if video data is available
+                    if (videoData.video) {
+                        const videoLink = videoData.video; // Assuming the API returns a direct video link
+                        downloadLinksDiv.innerHTML += `<a href="${videoLink}" download>Download Video (${quality})</a>`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching download links:', error);
+                alert('Failed to fetch download links. Please try again later.');
+            }
+        }
+    </script>
+
+</body>
+</html>
