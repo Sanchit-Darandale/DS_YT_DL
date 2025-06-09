@@ -15,6 +15,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/meta")
+async def get_meta(url: str):
+    async with httpx.AsyncClient(timeout=20) as c:
+        r = await c.get("https://gpt76.vercel.app/download", params={"url": url})
+    return r.json()
+    
 @app.get("/")
 def read_root():
     return {"message": "YouTube Proxy is Live"}
