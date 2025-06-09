@@ -1,56 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>YouTube Downloader</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YouTube Audio/Video Downloader</title>
   <style>
-    body { max-width:600px; padding:1rem; margin:auto; font-family:sans-serif; }
-    input,button{ width:100%; padding:0.75rem; margin:0.5rem 0; font-size:1rem; }
-    audio,video{ width:100%; margin-top:1rem; }
-    .btn{ display:inline-block; padding:0.5rem 1rem; background:#007bff;color:#fff;text-decoration:none;border-radius:4px;margin-top:0.5rem; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+    }
+    input, button, select {
+      padding: 10px;
+      margin: 10px;
+      width: 80%;
+      max-width: 500px;
+      font-size: 16px;
+    }
+    .video-player {
+      margin-top: 20px;
+      width: 90%;
+      max-width: 720px;
+    }
+    .buttons {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 80%;
+      max-width: 500px;
+    }
   </style>
 </head>
 <body>
   <h1>YouTube Downloader</h1>
-  <input id="ytUrl" placeholder="Enter YouTube link"/>
-  <button onclick="fetchLinks()">Fetch</button>
-  <div id="result"></div>
+  <input type="text" id="ytUrl" placeholder="Paste YouTube URL here" />
+  <input type="text" id="filename" placeholder="Optional: Custom filename (no extension)" />
+  
+  <div class="buttons">
+    <button onclick="download('mp3')">Download MP3</button>
+    <button onclick="download('480')">Download 480p</button>
+    <button onclick="download('720')">Download 720p</button>
+    <button onclick="download('1080')">Download 1080p</button>
+  </div>
+
+  <div id="player" class="video-player"></div>
 
   <script>
-    async function fetchLinks(){
+    const BACKEND_URL = "https://project-03-hop0.onrender.com/proxy";
+
+    function download(format) {
       const url = document.getElementById("ytUrl").value.trim();
-      const out = document.getElementById("result");
-      if(!url) { out.textContent = "Enter a valid link."; return; }
-      out.textContent = "Loading...";
+      const filename = document.getElementById("filename").value.trim() || "media";
 
-      try {
-        const resp = await fetch(`https://project-03-hop0.onrender.com/meta?url=${encodeURIComponent(url)}`);
-        const data = await resp.json();
-        if(!data.success) throw new Error("No data");
+      if (!url) {
+        alert("Please enter a valid YouTube URL.");
+        return;
+      }
 
-        const title = data.title.replace(/[\\/:*?"<>|]/g, "_");
-        const media = data.medias;
+      const fullUrl = `${BACKEND_URL}?url=${encodeURIComponent(url)}&ext=${format}&filename=${filename}`;
+      console.log("Requesting:", fullUrl);
 
-        const find = q => media.find(m => m.ext==="mp4" && m.quality.includes(q));
-        const audio = media.find(m => m.audioQuality);
-        const v480 = find("480");
-        const v720 = find("720");
-        const v1080 = find("1080");
-
-        out.innerHTML = `
-          <h2>${data.title}</h2>
-          <img src="${data.thumbnail}" alt="thumb" style="width:100%;"/>
-          ${audio ? `<audio controls src="https://project-03-hop0.onrender.com/proxy?url=${encodeURIComponent(audio.url)}&filename=${title}&ext=mp3"></audio><a class="btn" href="https://project-03-hop0.onrender.com/proxy?url=${encodeURIComponent(audio.url)}&filename=${title}&ext=mp3" download>Download MP3</a>` : ""}
-          ${v480 ? `<video controls src="https://project-03-hop0.onrender.com/proxy?url=${encodeURIComponent(v480.url)}&filename=${title}-480p&ext=mp4"></video><a class="btn" href="https://project-03-hop0.onrender.com/proxy?url=${encodeURIComponent(v480.url)}&filename=${title}-480p&ext=mp4" download>Download 480p</a>` : ""}
-          ${v720 ? `<a class="btn" href="https://project-03-hop0.onrender.com/proxy?url=${encodeURIComponent(v720.url)}&filename=${title}-720p&ext=mp4" download>Download 720p</a>` : ""}
-          ${v1080 ? `<a class="btn" href="https://project-03-hop0.onrender.com/proxy?url=${encodeURIComponent(v1080.url)}&filename=${title}-1080p&ext=mp4" download>Download 1080p</a>` : ""}
+      // Streaming only for video
+      if (["480", "720", "1080"].includes(format)) {
+        document.getElementById("player").innerHTML = `
+          <video width="100%" controls autoplay>
+            <source src="${fullUrl}" type="video/mp4">
+            Your browser does not support video playback.
+          </video>
         `;
-      } catch (e) {
-        console.error(e);
-        out.textContent = "Error fetching links.";
+      } else {
+        // Audio will trigger download
+        const a = document.createElement("a");
+        a.href = fullUrl;
+        a.download = `${filename}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       }
     }
   </script>
 </body>
-    </html>
+</html>
