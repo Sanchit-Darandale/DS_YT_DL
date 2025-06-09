@@ -1,149 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>YouTube Downloader</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #111;
-      color: #fff;
-      padding: 20px;
-      max-width: 600px;
-      margin: auto;
+      background: #111;
+      color: #0f0;
+      font-family: sans-serif;
+      padding: 2rem;
     }
-    input[type="text"] {
+    input, button {
+      padding: 0.6rem;
+      font-size: 1rem;
+      margin-top: 0.5rem;
       width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: none;
-      margin-bottom: 10px;
-    }
-    button {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      background-color: #1db954;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #17a444;
     }
     .section {
-      margin-top: 30px;
+      margin-top: 2rem;
     }
-    .download {
-      display: inline-block;
-      margin-top: 10px;
-      padding: 8px 16px;
-      background-color: #222;
-      color: #1db954;
-      text-decoration: none;
-      border-radius: 5px;
-    }
-    h2, h3 {
-      color: #1db954;
-    }
-    video, audio {
-      border-radius: 8px;
-      background-color: #000;
-    }
-    img {
+    audio, video {
       width: 100%;
-      border-radius: 10px;
-      margin-bottom: 20px;
+      margin-top: 1rem;
+    }
+    .download-btn {
+      display: inline-block;
+      background: #0f0;
+      color: #000;
+      padding: 0.5rem 1rem;
+      text-decoration: none;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
   <h1>YouTube Downloader</h1>
-  <input type="text" id="urlInput" placeholder="Enter YouTube link..." />
-  <button onclick="fetchData()">Download</button>
+  <input type="text" id="ytUrl" placeholder="Enter YouTube URL">
+  <button onclick="fetchDownloadLinks()">Download</button>
 
   <div id="result" class="section"></div>
 
   <script>
-    async function fetchData() {
-      const url = document.getElementById('urlInput').value;
-      const result = document.getElementById('result');
-      result.innerHTML = 'Loading...';
+    async function fetchDownloadLinks() {
+      const url = document.getElementById("ytUrl").value;
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "Fetching...";
 
       try {
-        const apiURL = `https://gpt76.vercel.app/download?url=${encodeURIComponent(url)}`;
-        const proxyURL = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiURL)}`;
-
-        const res = await fetch(proxyURL);
+        const res = await fetch(`https://gpt76.vercel.app/download?url=${encodeURIComponent(url)}`);
         const data = await res.json();
 
-        if (!data.success) {
-          result.innerHTML = '<p style="color:red;">Error: Could not fetch video data.</p>';
-          return;
-        }
+        const audioUrl = data.audio_url;
+        const video480 = data.video_480p;
+        const video720 = data.video_720p;
+        const video1080 = data.video_1080p;
+        const title = data.title || "media";
 
-        const title = data.title;
-        const thumb = data.thumbnail;
-        const medias = data.medias;
+        const proxy = "https://project-03-hop0.onrender.com/proxy";
 
-        const audio = medias.find(m => m.type === 'audio' || m.audioQuality);
-        const video480 = medias.find(m => m.label.includes('480'));
-        const video720 = medias.find(m => m.label.includes('720'));
-        const video1080 = medias.find(m => m.label.includes('1080'));
-
-        let html = `
+        resultDiv.innerHTML = `
           <h2>${title}</h2>
-          <img src="${thumb}" alt="Thumbnail" />
+
+          <div>
+            <h3>MP3 Audio</h3>
+            <audio controls src="${proxy}?url=${encodeURIComponent(audioUrl)}&filename=${encodeURIComponent(title)}&ext=mp3"></audio>
+            <br>
+            <a class="download-btn" href="${proxy}?url=${encodeURIComponent(audioUrl)}&filename=${encodeURIComponent(title)}&ext=mp3" download>Download MP3</a>
+          </div>
+
+          <div>
+            <h3>Video 480p</h3>
+            <video controls src="${proxy}?url=${encodeURIComponent(video480)}&filename=${encodeURIComponent(title)}-480p&ext=mp4"></video>
+            <br>
+            <a class="download-btn" href="${proxy}?url=${encodeURIComponent(video480)}&filename=${encodeURIComponent(title)}-480p&ext=mp4" download>Download 480p</a>
+          </div>
+
+          <div>
+            <h3>Video 720p</h3>
+            <a class="download-btn" href="${proxy}?url=${encodeURIComponent(video720)}&filename=${encodeURIComponent(title)}-720p&ext=mp4" download>Download 720p</a>
+          </div>
+
+          <div>
+            <h3>Video 1080p</h3>
+            <a class="download-btn" href="${proxy}?url=${encodeURIComponent(video1080)}&filename=${encodeURIComponent(title)}-1080p&ext=mp4" download>Download 1080p</a>
+          </div>
         `;
-
-        if (audio) {
-          html += `
-            <div class="section">
-              <h3>MP3 Audio</h3>
-              <audio controls src="${audio.url}" style="width: 100%;"></audio>
-              <br/>
-              <a class="download" href="${audio.url}" download>Download MP3</a>
-            </div>
-          `;
-        }
-
-        if (video480) {
-          html += `
-            <div class="section">
-              <h3>Video 480p</h3>
-              <video controls src="${video480.url}" style="width: 100%; max-height: 300px;"></video>
-              <br/>
-              <a class="download" href="${video480.url}" download>Download 480p</a>
-            </div>
-          `;
-        }
-
-        if (video720) {
-          html += `
-            <div class="section">
-              <h3>Video 720p</h3>
-              <a class="download" href="${video720.url}" download>Download 720p</a>
-            </div>
-          `;
-        }
-
-        if (video1080) {
-          html += `
-            <div class="section">
-              <h3>Video 1080p</h3>
-              <a class="download" href="${video1080.url}" download>Download 1080p</a>
-            </div>
-          `;
-        }
-
-        result.innerHTML = html;
-
       } catch (err) {
+        resultDiv.innerHTML = "❌ Failed to fetch download links.";
         console.error(err);
-        result.innerHTML = '<p style="color:red;">An error occurred while fetching data.</p>';
       }
     }
   </script>
