@@ -1,9 +1,6 @@
 from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
-import httpx
-import subprocess
-from fastapi import FastAPI, Query
-import os
-import uuid
+import httpx, os, uuid
+from fastapi import FastAPI, Query, HTTPException 
 
 app = FastAPI()
 
@@ -16,47 +13,47 @@ async def get_meta(url: str):
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
-"""@app.get("/proxy")
-async def proxy(url: str, filename: str = "media", ext: str = "mp4"):
-    headers = {"User-Agent": "Mozilla/5.0"}
+API_URL = "https://gpt76.vercel.app/download"
 
-    try:
-        client = httpx.AsyncClient(headers=headers, timeout=60)
-        response = await client.get(url, follow_redirects=True)
-        await client.aclose()
+MIME_TYPES = {
+    "mp3": "audio/mpeg",
+    "480": "video/mp4",
+    "720": "video/mp4",
+    "1080": "video/mp4",
+}
 
-        if response.status_code != 200:
-            return JSONResponse(content={"error": "Failed to fetch media"}, status_code=400)
-
-        return StreamingResponse(
-            iter([response.content]),
-            media_type="video/mp4" if ext == "mp4" else "audio/mpeg",
-            headers={"Content-Disposition": f'attachment; filename="{filename}.{ext}"'}
-        )
-    except Exception as e:
-        return JSONResponse(content={"error": f"Proxy failed: {str(e)}"}, status_code=500)
-"""
 @app.get("/proxy")
-async def download_audio(url: str, filename: str = "song", ext: str = "mp3"):
-    temp_id = str(uuid.uuid4())
-    output_path = f"{temp_id}.{ext}"
+async def stream_media(
+    url: str = Query(..., description="YouTube video URL"),
+    ext: str = Query("mp3", description="Format: mp3, 480, 720, 1080"),
+    filename: str = Query("media", description="Filename without extension"),
+):
+    ext = ext.lower()
+    if ext not in MIME_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported format")
 
-    try:
-        # Download audio using yt-dlp
-        subprocess.run([
-            "yt-dlp",
-            "-f", "bestaudio",
-            "--extract-audio",
-            "--audio-format", ext,
-            "-o", output_path,
-            url
-        ], check=True)
+    async with httpx.AsyncClient() as client:
+        res = await client.get(API_URL, params={"url": url})
+        if res.status_code != 200:
+            raise HTTPException(status_code=502, detail="Failed to fetch data from public API")
 
-        return FileResponse(
-            output_path,
-            media_type=f"audio/{ext}",
-            filename=f"{filename}.{ext}",
-            background=lambda: os.remove(output_path)
-        )
-    except subprocess.CalledProcessError:
-        return {"error": "Failed to download audio"}
+        data = res.json()
+        stream_url = data.get(ext if ext != "mp3" else "audio")
+
+        if not stream_url:
+            raise HTTPException(status_code=404, detail=f"{ext.upper()} format not available")
+
+        # Proxy stream
+        stream_response = await client.get(stream_url)
+        if stream_response.status_code != 200:
+            raise HTTPException(status_code=500, detail="Failed to fetch stream")
+
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}.{ext}"'
+    }
+
+    return StreamingResponse(
+        iter([stream_response.content]),
+        media_type=MIME_TYPES[ext],
+        headers=headers
+    )
