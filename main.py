@@ -13,7 +13,7 @@ async def get_meta(url: str):
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
-@app.get("/proxy")
+"""@app.get("/proxy")
 async def proxy(url: str, filename: str = "media", ext: str = "mp4"):
     headers = {"User-Agent": "Mozilla/5.0"}
 
@@ -32,3 +32,19 @@ async def proxy(url: str, filename: str = "media", ext: str = "mp4"):
         )
     except Exception as e:
         return JSONResponse(content={"error": f"Proxy failed: {str(e)}"}, status_code=500)
+"""
+
+@app.get("/proxy")
+async def proxy(url: str, filename: str = "file", ext: str = "mp3"):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail="Failed to fetch the file")
+        
+        return StreamingResponse(
+            iter([response.content]),
+            media_type=f"audio/{ext}" if ext == "mp3" else f"video/{ext}",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}.{ext}"
+            }
+        )
