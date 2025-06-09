@@ -1,52 +1,34 @@
-# main.py
-from fastapi import FastAPI, Request, Response
-from fastapi.responses import StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse, JSONResponse
 import httpx
 
 app = FastAPI()
 
-# Allow CORS for all origins (you can restrict to specific domains if needed)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 @app.get("/meta")
 async def get_meta(url: str):
-    async with httpx.AsyncClient(timeout=20) as c:
-        r = await c.get("https://gpt76.vercel.app/download", params={"url": url})
-    return r.json()
-    
-@app.get("/")
-def read_root():
-    return {"message": "YouTube Proxy is Live"}
+    try:
+        async with httpx.AsyncClient(timeout=20) as c:
+            r = await c.get("https://gpt76.vercel.app/download", params={"url": url})
+        return r.json()
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 @app.get("/proxy")
-async def proxy_media(url: str, filename: str = "media", ext: str = "mp4", range: str = None):
-    """
-    Proxy media from a remote URL, allowing range requests and proper download support.
-    Example usage: /proxy?url=https://example.com/video.mp4&filename=video&ext=mp4
-    """
-    headers = {"Range": range} if range else {}
+async def proxy(url: str, filename: str = "media", ext: str = "mp4"):
+    headers = {"User-Agent": "Mozilla/5.0"}
 
-    async with httpx.AsyncClient(follow_redirects=True, timeout=60) as client:
-        try:
-            response = await client.get(url, headers=headers, stream=True)
-            return StreamingResponse(
-                response.aiter_bytes(),
-                status_code=response.status_code,
-                headers={
-                    "Content-Type": response.headers.get("Content-Type", "application/octet-stream"),
-                    "Content-Length": response.headers.get("Content-Length", ""),
-                    "Content-Range": response.headers.get("Content-Range", ""),
-                    "Accept-Ranges": "bytes",
-                    "Content-Disposition": f'attachment; filename="{filename}.{ext}"',
-                }
-            )
-        except Exception as e:
-            return Response(f"Error proxying file: {str(e)}", status_code=500)
-          
+    try:
+        client = httpx.AsyncClient(headers=headers, timeout=60)
+        response = await client.get(url, follow_redirects=True)
+        await client.aclose()
+
+        if response.status_code != 200:
+            return JSONResponse(content={"error": "Failed to fetch media"}, status_code=400)
+
+        return StreamingResponse(
+            iter([response.content]),
+            media_type="video/mp4" if ext == "mp4" else "audio/mpeg",
+            headers={"Content-Disposition": f'attachment; filename="{filename}.{ext}"'}
+        )
+    except Exception as e:
+        return JSONResponse(content={"error": f"Proxy failed: {str(e)}"}, status_code=500)
