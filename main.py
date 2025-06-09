@@ -1,8 +1,16 @@
 from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 import httpx, os, uuid
 from fastapi import FastAPI, Query, HTTPException 
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/meta")
 async def get_meta(url: str):
