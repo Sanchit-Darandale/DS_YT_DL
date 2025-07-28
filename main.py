@@ -2,17 +2,28 @@ from flask import Flask, request, Response, send_file
 from yt_dlp import YoutubeDL
 import tempfile
 import os
+import time
 import uuid
 import shutil
 
 app = Flask(__name__)
 
+cookies_file = './cookies.txt'
 # Temporary download directory
 download_root = tempfile.mkdtemp()
 print(f"Temporary download folder: {download_root}")
 
+def cleanup_old_files(root_dir, max_age=3600):
+    now = time.time()
+    for folder in os.listdir(root_dir):
+        path = os.path.join(root_dir, folder)
+        if os.path.isdir(path):
+            if now - os.path.getmtime(path) > max_age:
+                shutil.rmtree(path, ignore_errors=True)
+
 @app.route("/proxy")
 def proxy():
+    cleanup_old_files(download_root)
     url = request.args.get("url")
     ext = request.args.get("ext", "mp3")
     filename = request.args.get("filename", str(uuid.uuid4()))
@@ -34,7 +45,7 @@ def proxy():
     ydl_opts = {
         'format': format_string,
         'outtmpl': output_path,
-        'cookiefile': 'cookies.txt',  # your attached cookie file
+        'cookiefile': cookies_file,  # your attached cookie file
         'merge_output_format': 'mp4' if not is_audio else None,
         'noplaylist': False,  # enable playlist/channel support
         'quiet': True,
