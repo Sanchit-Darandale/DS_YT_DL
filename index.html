@@ -3,116 +3,137 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DS YouTube Audio/Video Downloader</title>
+  <title>DS YouTube Downloader</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #0f0f0f;
-      --bg-light: #fefefe;
+      --bg-dark: linear-gradient(to right, #1e1e2f, #2a2a40);
+      --bg-light: linear-gradient(to right, #e3f2fd, #e1bee7);
       --text-dark: #ffffff;
-      --text-light: #111111;
-      --accent: #ff006e;
-      --secondary: #1f1f1f;
-      --button-hover: #ff3385;
+      --text-light: #212121;
+      --accent-dark: #ff4081;
+      --accent-light: #3f51b5;
+      --card-bg-dark: #2e2e3f;
+      --card-bg-light: #ffffff;
     }
 
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Poppins', sans-serif;
       background: var(--bg-dark);
       color: var(--text-dark);
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 30px 20px 60px;
-      min-height: 100vh;
-      transition: background 0.3s, color 0.3s;
-      position: relative;
+      padding: 30px 10px;
+      transition: background 0.4s, color 0.4s;
     }
 
-    .toggle-theme {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      cursor: pointer;
-      border-radius: 30px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-      transition: background 0.3s;
+    .container {
+      width: 100%;
+      max-width: 600px;
+      background: var(--card-bg-dark);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      transition: background 0.4s;
     }
 
-    input, button, select {
+    h1 {
+      text-align: center;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    input, select, button {
+      width: 100%;
       padding: 12px;
-      margin: 10px;
-      width: 80%;
-      max-width: 500px;
+      margin: 10px 0;
       font-size: 16px;
       border: none;
-      border-radius: 10px;
-      background: var(--secondary);
+      border-radius: 8px;
+      outline: none;
+      transition: 0.3s ease;
+    }
+
+    input, select {
+      background: #444;
       color: white;
-      transition: background 0.3s, box-shadow 0.3s;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    button {
+      background-color: var(--accent-dark);
+      color: white;
+      cursor: pointer;
     }
 
     button:hover {
-      background: var(--button-hover);
+      background-color: #ff6584;
+    }
+
+    .poster {
+      width: 100%;
+      border-radius: 12px;
+      margin-top: 15px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     }
 
     .video-player {
       margin-top: 20px;
-      width: 90%;
-      max-width: 720px;
     }
 
-    .details {
-      text-align: center;
-      margin-top: 20px;
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--accent-dark);
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
     }
 
-    img.poster {
-      width: 300px;
-      margin-top: 10px;
-      border-radius: 12px;
-      box-shadow: 0 0 15px rgba(255, 0, 110, 0.3);
-    }
-
-    footer {
-      position: absolute;
-      bottom: 10px;
-      width: 100%;
+    .footer {
+      margin-top: 40px;
       text-align: center;
       font-size: 14px;
-      color: #ccc;
+      color: #aaa;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
     }
   </style>
 </head>
 <body>
-  <button class="toggle-theme" onclick="toggleTheme()">Toggle Theme</button>
+  <button class="theme-toggle" onclick="toggleTheme()">🌗 Toggle Theme</button>
 
-  <h1 style="color: var(--accent);">DS YouTube Downloader</h1>
-  <input type="text" id="ytUrl" placeholder="Paste YouTube URL here" />
-  <div id="meta" class="details"></div>
+  <div class="container">
+    <h1>YouTube Downloader</h1>
+    <input type="text" id="ytUrl" placeholder="Paste YouTube URL here" />
+    <div id="meta"></div>
 
-  <select id="type">
-    <option value="audio">Audio (MP3)</option>
-    <option value="video">Video (MP4)</option>
-  </select>
+    <select id="type">
+      <option value="audio">Audio (MP3)</option>
+      <option value="video">Video (MP4)</option>
+    </select>
 
-  <select id="quality" style="display: none;">
-    <option value="360">360p</option>
-    <option value="480">480p</option>
-    <option value="720">720p</option>
-    <option value="1080">1080p</option>
-  </select>
+    <select id="quality" style="display: none;">
+      <option value="360">360p</option>
+      <option value="480">480p</option>
+      <option value="720">720p</option>
+      <option value="1080">1080p</option>
+    </select>
 
-  <button onclick="getInfo()">Fetch Info</button>
-  <button onclick="download()">Download</button>
+    <button onclick="getInfo()">Fetch Info</button>
+    <button onclick="download()">Download</button>
 
-  <div id="player" class="video-player"></div>
+    <div id="player" class="video-player"></div>
+  </div>
 
-  <footer>Made With ❤️ by Sanchit</footer>
+  <div class="footer">Made with ❤️ by Sanchit</div>
 
   <script>
     const BACKEND_URL = "https://dsytdldr.onrender.com/proxy";
@@ -147,18 +168,18 @@
 
       if (!url) return alert("Enter YouTube URL");
 
-      const cleanUrl = url.split("&")[0];  // remove extra params
+      const cleanUrl = url.split('&')[0];
       const fullUrl = `${BACKEND_URL}?url=${encodeURIComponent(cleanUrl)}&ext=${ext}`;
-      // const fullUrl = `${BACKEND_URL}?url=${encodeURIComponent(url)}&ext=${ext}`;
+
+      const player = document.getElementById("player");
+      player.innerHTML = "";
 
       if (type === "audio") {
         const audio = document.createElement("audio");
         audio.src = fullUrl;
         audio.controls = true;
         audio.autoplay = true;
-
-        document.getElementById("player").innerHTML = "";
-        document.getElementById("player").appendChild(audio);
+        player.appendChild(audio);
 
         const a = document.createElement("a");
         a.href = fullUrl;
@@ -167,7 +188,7 @@
         a.click();
         document.body.removeChild(a);
       } else {
-        document.getElementById("player").innerHTML = `
+        player.innerHTML = `
           <video width="100%" controls autoplay>
             <source src="${fullUrl}" type="video/mp4">
             Your browser does not support video playback.
@@ -178,15 +199,27 @@
 
     function toggleTheme() {
       const body = document.body;
-      const currentBg = getComputedStyle(body).backgroundColor;
-      const isDark = currentBg === "rgb(15, 15, 15)";
+      const isDark = body.style.background.includes("#1e1e2f");
 
-      document.body.style.background = isDark ? "var(--bg-light)" : "var(--bg-dark)";
-      document.body.style.color = isDark ? "var(--text-light)" : "var(--text-dark)";
-      document.querySelectorAll("input, button, select").forEach(el => {
-        el.style.background = isDark ? "#e6e6e6" : "var(--secondary)";
-        el.style.color = isDark ? "#111" : "#fff";
-      });
+      if (isDark) {
+        document.body.style.background = "var(--bg-light)";
+        document.body.style.color = "var(--text-light)";
+        document.querySelector(".container").style.background = "var(--card-bg-light)";
+        document.querySelector(".theme-toggle").style.background = "var(--accent-light)";
+        document.querySelectorAll("input, select").forEach(el => {
+          el.style.background = "#fff";
+          el.style.color = "#000";
+        });
+      } else {
+        document.body.style.background = "var(--bg-dark)";
+        document.body.style.color = "var(--text-dark)";
+        document.querySelector(".container").style.background = "var(--card-bg-dark)";
+        document.querySelector(".theme-toggle").style.background = "var(--accent-dark)";
+        document.querySelectorAll("input, select").forEach(el => {
+          el.style.background = "#444";
+          el.style.color = "#fff";
+        });
+      }
     }
   </script>
 </body>
