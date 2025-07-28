@@ -1,5 +1,6 @@
 from flask import Flask, request, Response, send_file
 from yt_dlp import YoutubeDL
+from urllib.parse import urlparse, parse_qs
 import tempfile
 import os
 import time
@@ -28,17 +29,22 @@ def cleanup_old_files(root_dir, max_age=3600):
 @app.route("/proxy")
 def proxy():
     cleanup_old_files(download_root)
+    # url = request.args.get("url", "").strip().split('&')[0].split('?')[0]
+    raw_url = request.args.get("url", "").strip()
+    if not raw_url:
+        return Response("Missing URL", status=400)
 
-    url = request.args.get("url", "").strip()
+    parsed = urlparse(raw_url)
+    if 'youtube.com' in parsed.netloc or 'youtu.be' in parsed.netloc:
+        url = raw_url.split('&')[0].split('?')[0]  # Clean up
+    else:
+        url = raw_url
+
     ext = request.args.get("ext", "mp3")
     filename = request.args.get("filename", str(uuid.uuid4()))
 
     if not url:
         return Response("Missing URL", status=400)
-
-    # Clean malformed mobile share links (like `youtu.be/DxsDekHDKXo?feature=shared`)
-    if "youtu.be" in url or "youtube.com" in url:
-        url = url.split("&")[0]
 
     is_audio = ext == "mp3"
     outdir = os.path.join(download_root, filename)
