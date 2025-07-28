@@ -25,7 +25,7 @@ def cleanup_old_files(root_dir, max_age=3600):
 @app.route("/proxy")
 def proxy():
     cleanup_old_files(download_root)
-    url = request.args.get("url")
+    url = url.split('&')[0].split('?')[0] if 'youtu' in url else url
     ext = request.args.get("ext", "mp3")
     filename = request.args.get("filename", str(uuid.uuid4()))
 
@@ -49,6 +49,7 @@ def proxy():
         'cookiefile': cookies_file,  # your attached cookie file
         'merge_output_format': 'mp4' if not is_audio else None,
         'noplaylist': False,  # enable playlist/channel support
+        'geo_bypass': True,
         'quiet': True,
     }
 
