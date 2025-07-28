@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DS YouTube Downloader</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DS YouTube Audio/Video Downloader</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: linear-gradient(to right, #1e1e2f, #2a2a40);
-      --bg-light: linear-gradient(to right, #e3f2fd, #e1bee7);
+      --bg-dark: #0f1117;
+      --bg-light: #fdfdfd;
       --text-dark: #ffffff;
-      --text-light: #212121;
-      --accent-dark: #ff4081;
-      --accent-light: #3f51b5;
-      --card-bg-dark: #2e2e3f;
-      --card-bg-light: #ffffff;
+      --text-light: #111111;
+      --primary: #00c9a7;
+      --secondary: #232931;
+      --accent: #ff4c60;
+      --glass: rgba(255, 255, 255, 0.05);
     }
 
     body {
@@ -24,96 +24,96 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 30px 10px;
-      transition: background 0.4s, color 0.4s;
+      justify-content: center;
+      padding: 40px 20px;
+      transition: background 0.5s ease, color 0.5s ease;
+      min-height: 100vh;
     }
 
     .container {
+      background: var(--glass);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 15px;
+      padding: 30px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
       width: 100%;
       max-width: 600px;
-      background: var(--card-bg-dark);
-      padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-      transition: background 0.4s;
+      animation: fadeIn 1s ease forwards;
     }
 
     h1 {
+      color: var(--primary);
       text-align: center;
-      font-weight: 600;
       margin-bottom: 20px;
     }
 
-    input, select, button {
+    input, button, select {
       width: 100%;
       padding: 12px;
       margin: 10px 0;
-      font-size: 16px;
       border: none;
       border-radius: 8px;
-      outline: none;
-      transition: 0.3s ease;
+      font-size: 16px;
+      transition: 0.3s;
     }
 
     input, select {
-      background: #444;
+      background: var(--secondary);
       color: white;
     }
 
     button {
-      background-color: var(--accent-dark);
+      background: var(--primary);
       color: white;
+      font-weight: bold;
       cursor: pointer;
     }
 
     button:hover {
-      background-color: #ff6584;
+      background: var(--accent);
+    }
+
+    .details {
+      text-align: center;
+      margin-top: 20px;
+      animation: slideIn 1s ease forwards;
     }
 
     .poster {
-      width: 100%;
-      border-radius: 12px;
+      width: 280px;
+      border-radius: 10px;
       margin-top: 15px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
     }
 
     .video-player {
       margin-top: 20px;
-    }
-
-    .theme-toggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: var(--accent-dark);
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 8px;
-      cursor: pointer;
+      width: 100%;
     }
 
     .footer {
       margin-top: 40px;
+      color: var(--primary);
       text-align: center;
       font-size: 14px;
-      color: #aaa;
     }
 
-    @media (max-width: 600px) {
-      .container {
-        padding: 20px;
-      }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
   </style>
 </head>
 <body>
-  <button class="theme-toggle" onclick="toggleTheme()">🌗 Toggle Theme</button>
-
   <div class="container">
-    <h1>YouTube Downloader</h1>
+    <h1>🎵 YouTube Downloader</h1>
     <input type="text" id="ytUrl" placeholder="Paste YouTube URL here" />
-    <div id="meta"></div>
 
     <select id="type">
       <option value="audio">Audio (MP3)</option>
@@ -130,10 +130,11 @@
     <button onclick="getInfo()">Fetch Info</button>
     <button onclick="download()">Download</button>
 
+    <div id="meta" class="details"></div>
     <div id="player" class="video-player"></div>
   </div>
 
-  <div class="footer">Made with ❤️ by Sanchit</div>
+  <div class="footer">Made With ❤️ by Sanchit</div>
 
   <script>
     const BACKEND_URL = "https://dsytdldr.onrender.com/proxy";
@@ -168,18 +169,16 @@
 
       if (!url) return alert("Enter YouTube URL");
 
-      const cleanUrl = url.split('&')[0];
-      const fullUrl = `${BACKEND_URL}?url=${encodeURIComponent(cleanUrl)}&ext=${ext}`;
-
-      const player = document.getElementById("player");
-      player.innerHTML = "";
+      const fullUrl = `${BACKEND_URL}?url=${encodeURIComponent(url)}&ext=${ext}`;
 
       if (type === "audio") {
         const audio = document.createElement("audio");
         audio.src = fullUrl;
         audio.controls = true;
         audio.autoplay = true;
-        player.appendChild(audio);
+
+        document.getElementById("player").innerHTML = "";
+        document.getElementById("player").appendChild(audio);
 
         const a = document.createElement("a");
         a.href = fullUrl;
@@ -188,37 +187,12 @@
         a.click();
         document.body.removeChild(a);
       } else {
-        player.innerHTML = `
+        document.getElementById("player").innerHTML = `
           <video width="100%" controls autoplay>
             <source src="${fullUrl}" type="video/mp4">
             Your browser does not support video playback.
           </video>
         `;
-      }
-    }
-
-    function toggleTheme() {
-      const body = document.body;
-      const isDark = body.style.background.includes("#1e1e2f");
-
-      if (isDark) {
-        document.body.style.background = "var(--bg-light)";
-        document.body.style.color = "var(--text-light)";
-        document.querySelector(".container").style.background = "var(--card-bg-light)";
-        document.querySelector(".theme-toggle").style.background = "var(--accent-light)";
-        document.querySelectorAll("input, select").forEach(el => {
-          el.style.background = "#fff";
-          el.style.color = "#000";
-        });
-      } else {
-        document.body.style.background = "var(--bg-dark)";
-        document.body.style.color = "var(--text-dark)";
-        document.querySelector(".container").style.background = "var(--card-bg-dark)";
-        document.querySelector(".theme-toggle").style.background = "var(--accent-dark)";
-        document.querySelectorAll("input, select").forEach(el => {
-          el.style.background = "#444";
-          el.style.color = "#fff";
-        });
       }
     }
   </script>
