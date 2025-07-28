@@ -6,12 +6,13 @@
   <title>DS YouTube Audio/Video Downloader</title>
   <style>
     :root {
-      --bg-dark: #111;
-      --bg-light: #f4f4f4;
-      --text-dark: #fff;
-      --text-light: #000;
-      --accent: #ff4c60;
-      --secondary: #1e1e1e;
+      --bg-dark: #0f0f0f;
+      --bg-light: #fefefe;
+      --text-dark: #ffffff;
+      --text-light: #111111;
+      --accent: #ff006e;
+      --secondary: #1f1f1f;
+      --button-hover: #ff3385;
     }
 
     body {
@@ -21,8 +22,10 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 30px;
+      padding: 30px 20px 60px;
+      min-height: 100vh;
       transition: background 0.3s, color 0.3s;
+      position: relative;
     }
 
     .toggle-theme {
@@ -34,24 +37,27 @@
       border: none;
       padding: 10px 20px;
       cursor: pointer;
-      border-radius: 5px;
+      border-radius: 30px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      transition: background 0.3s;
     }
 
     input, button, select {
-      padding: 10px;
+      padding: 12px;
       margin: 10px;
       width: 80%;
       max-width: 500px;
       font-size: 16px;
       border: none;
-      border-radius: 5px;
+      border-radius: 10px;
       background: var(--secondary);
       color: white;
-      transition: background 0.3s;
+      transition: background 0.3s, box-shadow 0.3s;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
     button:hover {
-      background: var(--accent);
+      background: var(--button-hover);
     }
 
     .video-player {
@@ -68,15 +74,24 @@
     img.poster {
       width: 300px;
       margin-top: 10px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(255, 0, 110, 0.3);
+    }
+
+    footer {
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      font-size: 14px;
+      color: #ccc;
     }
   </style>
 </head>
 <body>
   <button class="toggle-theme" onclick="toggleTheme()">Toggle Theme</button>
 
-  <h1>YouTube Downloader</h1>
+  <h1 style="color: var(--accent);">DS YouTube Downloader</h1>
   <input type="text" id="ytUrl" placeholder="Paste YouTube URL here" />
   <div id="meta" class="details"></div>
 
@@ -97,8 +112,10 @@
 
   <div id="player" class="video-player"></div>
 
+  <footer>Made With ❤️ by Sanchit</footer>
+
   <script>
-    const BACKEND_URL = "https://dsytdldr.onrender.com/proxy"; // your render backend proxy
+    const BACKEND_URL = "https://dsytdldr.onrender.com/proxy";
 
     document.getElementById("type").addEventListener("change", function () {
       const isVideo = this.value === "video";
@@ -158,24 +175,16 @@
     }
 
     function toggleTheme() {
-      const bodyStyles = document.body.style;
-      const isDark = bodyStyles.backgroundColor === "rgb(17, 17, 17)";
+      const body = document.body;
+      const currentBg = getComputedStyle(body).backgroundColor;
+      const isDark = currentBg === "rgb(15, 15, 15)";
 
-      if (isDark) {
-        document.body.style.background = "var(--bg-light)";
-        document.body.style.color = "var(--text-light)";
-        document.querySelectorAll("input, button, select").forEach(el => {
-          el.style.background = "#ddd";
-          el.style.color = "#000";
-        });
-      } else {
-        document.body.style.background = "var(--bg-dark)";
-        document.body.style.color = "var(--text-dark)";
-        document.querySelectorAll("input, button, select").forEach(el => {
-          el.style.background = "var(--secondary)";
-          el.style.color = "#fff";
-        });
-      }
+      document.body.style.background = isDark ? "var(--bg-light)" : "var(--bg-dark)";
+      document.body.style.color = isDark ? "var(--text-light)" : "var(--text-dark)";
+      document.querySelectorAll("input, button, select").forEach(el => {
+        el.style.background = isDark ? "#e6e6e6" : "var(--secondary)";
+        el.style.color = isDark ? "#111" : "#fff";
+      });
     }
   </script>
 </body>
