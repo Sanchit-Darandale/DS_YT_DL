@@ -5,46 +5,77 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>DS YouTube Audio/Video Downloader</title>
   <style>
+    :root {
+      --bg-dark: #111;
+      --bg-light: #f4f4f4;
+      --text-dark: #fff;
+      --text-light: #000;
+      --accent: #ff4c60;
+      --secondary: #1e1e1e;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-dark);
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 30px;
+      transition: background 0.3s, color 0.3s;
     }
+
+    .toggle-theme {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
     input, button, select {
       padding: 10px;
       margin: 10px;
       width: 80%;
       max-width: 500px;
       font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background: var(--secondary);
+      color: white;
+      transition: background 0.3s;
     }
+
+    button:hover {
+      background: var(--accent);
+    }
+
     .video-player {
       margin-top: 20px;
       width: 90%;
       max-width: 720px;
     }
-    .buttons {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 80%;
-      max-width: 500px;
-    }
+
     .details {
       text-align: center;
       margin-top: 20px;
     }
+
     img.poster {
       width: 300px;
       margin-top: 10px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     }
   </style>
 </head>
 <body>
+  <button class="toggle-theme" onclick="toggleTheme()">Toggle Theme</button>
+
   <h1>YouTube Downloader</h1>
   <input type="text" id="ytUrl" placeholder="Paste YouTube URL here" />
   <div id="meta" class="details"></div>
@@ -116,7 +147,6 @@
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-
       } else {
         document.getElementById("player").innerHTML = `
           <video width="100%" controls autoplay>
@@ -126,98 +156,27 @@
         `;
       }
     }
-  </script>
-</body>
-</html>
 
+    function toggleTheme() {
+      const bodyStyles = document.body.style;
+      const isDark = bodyStyles.backgroundColor === "rgb(17, 17, 17)";
 
-<!--
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>YouTube Audio/Video Downloader</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 30px;
-    }
-    input, button, select {
-      padding: 10px;
-      margin: 10px;
-      width: 80%;
-      max-width: 500px;
-      font-size: 16px;
-    }
-    .video-player {
-      margin-top: 20px;
-      width: 90%;
-      max-width: 720px;
-    }
-    .buttons {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 80%;
-      max-width: 500px;
-    }
-  </style>
-</head>
-<body>
-  <h1>YouTube Downloader</h1>
-  <input type="text" id="ytUrl" placeholder="Paste YouTube URL here" />
-  <input type="text" id="filename" placeholder="Optional: Custom filename (no extension)" />
-  
-  <div class="buttons">
-    <button onclick="download('mp3')">Download MP3</button>
-    <button onclick="download('480')">Download 480p</button>
-    <button onclick="download('720')">Download 720p</button>
-    <button onclick="download('1080')">Download 1080p</button>
-  </div>
-
-  <div id="player" class="video-player"></div>
-
-  <script>
-    const BACKEND_URL = "https://project-03-hop0.onrender.com/proxy";
-
-    function download(format) {
-      const url = document.getElementById("ytUrl").value.trim();
-      const filename = document.getElementById("filename").value.trim() || "media";
-
-      if (!url) {
-        alert("Please enter a valid YouTube URL.");
-        return;
-      }
-
-      const fullUrl = `${BACKEND_URL}?url=${encodeURIComponent(url)}&ext=${format}&filename=${filename}`;
-      console.log("Requesting:", fullUrl);
-
-      // Streaming only for video
-      if (["480", "720", "1080"].includes(format)) {
-        document.getElementById("player").innerHTML = `
-          <video width="100%" controls autoplay>
-            <source src="${fullUrl}" type="video/mp4">
-            Your browser does not support video playback.
-          </video>
-        `;
+      if (isDark) {
+        document.body.style.background = "var(--bg-light)";
+        document.body.style.color = "var(--text-light)";
+        document.querySelectorAll("input, button, select").forEach(el => {
+          el.style.background = "#ddd";
+          el.style.color = "#000";
+        });
       } else {
-        // Audio will trigger download
-        const a = document.createElement("a");
-        a.href = fullUrl;
-        a.download = `${filename}.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        document.body.style.background = "var(--bg-dark)";
+        document.body.style.color = "var(--text-dark)";
+        document.querySelectorAll("input, button, select").forEach(el => {
+          el.style.background = "var(--secondary)";
+          el.style.color = "#fff";
+        });
       }
     }
   </script>
 </body>
 </html>
--->
