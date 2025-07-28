@@ -147,7 +147,9 @@
 
       if (!url) return alert("Enter YouTube URL");
 
-      const fullUrl = `${BACKEND_URL}?url=${encodeURIComponent(url)}&ext=${ext}`;
+      const cleanUrl = url.split("&")[0];  // remove extra params
+      const fullUrl = `${BACKEND_URL}?url=${encodeURIComponent(cleanUrl)}&ext=${ext}`;
+      // const fullUrl = `${BACKEND_URL}?url=${encodeURIComponent(url)}&ext=${ext}`;
 
       if (type === "audio") {
         const audio = document.createElement("audio");
