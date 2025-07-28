@@ -1,89 +1,67 @@
-from flask import Flask, request, Response, send_file
-from yt_dlp import YoutubeDL
-from urllib.parse import urlparse, parse_qs
-import tempfile
+from flask import Flask, request, render_template, send_file, redirect, url_for, flash
 import os
-import time
+from yt_dlp import YoutubeDL
+from yt_dlp.utils import DownloadError
 import uuid
-import shutil
-import traceback
 
 app = Flask(__name__)
+app.secret_key = "replace_with_a_secure_random_key"
 
-# Path to your cookies.txt file (make sure it's deployed on Render)
-cookies_file = os.path.join(os.path.dirname(__file__), "cookies.txt")
+DOWNLOAD_DIR = "downloads"
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+COOKIES_FILE = "cookies.txt"  # Make sure it's set/uploaded
 
-# Temporary download directory
-download_root = tempfile.mkdtemp()
-print(f"✅ Temporary download folder: {download_root}")
-
-# Cleanup old files
-def cleanup_old_files(root_dir, max_age=3600):
-    now = time.time()
-    for folder in os.listdir(root_dir):
-        path = os.path.join(root_dir, folder)
-        if os.path.isdir(path):
-            if now - os.path.getmtime(path) > max_age:
-                shutil.rmtree(path, ignore_errors=True)
-
-@app.route("/proxy")
-def proxy():
-    cleanup_old_files(download_root)
-    # url = request.args.get("url", "").strip().split('&')[0].split('?')[0]
-    raw_url = request.args.get("url", "").strip()
-    if not raw_url:
-        return Response("Missing URL", status=400)
-
-    parsed = urlparse(raw_url)
-    if 'youtube.com' in parsed.netloc or 'youtu.be' in parsed.netloc:
-        url = raw_url.split('&')[0].split('?')[0]  # Clean up
+def get_yt_options(url, fmt, res, outfile):
+    if fmt == "audio":
+        video_format = "bestaudio"
+        merge = None
     else:
-        url = raw_url
-
-    ext = request.args.get("ext", "mp3")
-    filename = request.args.get("filename", str(uuid.uuid4()))
-
-    if not url:
-        return Response("Missing URL", status=400)
-
-    is_audio = ext == "mp3"
-    outdir = os.path.join(download_root, filename)
-    os.makedirs(outdir, exist_ok=True)
-
-    output_path = os.path.join(outdir, f"{filename}.%(ext)s")
-    format_string = (
-        "bestaudio[ext=m4a]/bestaudio"
-        if is_audio
-        else f"bestvideo[height<={ext}]+bestaudio/best"
-    )
-
-    ydl_opts = {
-        'format': format_string,
-        'outtmpl': output_path,
-        'cookiefile': cookies_file,
-        'merge_output_format': 'mp4' if not is_audio else None,
-        'noplaylist': False,
-        'geo_bypass': True,
-        'quiet': True,
+        if res and res.isdigit():
+            video_format = f"bestvideo[height<={res}]+bestaudio/best"
+        else:
+            video_format = "bestvideo[height<=1080]+bestaudio/best"
+        merge = "mp4"
+    return {
+        "cookiefile": COOKIES_FILE,
+        "format": video_format,
+        "merge_output_format": merge,
+        "outtmpl": outfile,
+        "noplaylist": False,
+        "quiet": True,
     }
 
-    try:
-        with YoutubeDL(ydl_opts) as ydl:
-            print(f"▶️ Fetching: {url}")
-            info = ydl.extract_info(url, download=True)
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        url = request.form["url"].strip()
+        fmt = request.form["type"]
+        res = request.form.get("resolution", "1080").strip() if fmt == "video" else None
+        filename = f"{uuid.uuid4()}.%(ext)s"
+        filepath = os.path.join(DOWNLOAD_DIR, filename)
+        ydl_opts = get_yt_options(url, fmt, res, filepath)
 
-            # Handle playlists
-            if 'entries' in info:
-                zip_path = os.path.join(outdir, f"{filename}.zip")
-                shutil.make_archive(zip_path.replace(".zip", ""), 'zip', outdir)
-                return send_file(zip_path, as_attachment=True)
+        try:
+            with YoutubeDL(ydl_opts) as ydl:
+                result = ydl.extract_info(url, download=True)
+                if 'requested_downloads' in result:
+                    real_file = result['requested_downloads'][0]['filepath']
+                else:
+                    real_file = ydl.prepare_filename(result)
+        except DownloadError as e:
+            flash(f"Download failed: {str(e)}", "danger")
+            return redirect(url_for('index'))
+        
+        basename = os.path.basename(real_file)
+        return redirect(url_for('download_file', filename=basename))
+    return render_template("index.html")
 
-            # Handle single video/audio
-            final_file = ydl.prepare_filename(info)
-            return send_file(final_file, as_attachment=True)
-
-    except Exception as e:
-        return Response(f"❌ Error: {str(e)}\n\n{traceback.format_exc()}", status=500)
+@app.route("/download/<filename>")
+def download_file(filename):
+    file_path = os.path.join(DOWNLOAD_DIR, filename)
+    if not os.path.exists(file_path):
+        flash("File not found.", "danger")
+        return redirect(url_for('index'))
+    return send_file(file_path, as_attachment=True)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(debug=True)
