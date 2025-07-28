@@ -1,8 +1,2 @@
-fastapi
-uvicorn
-httpx
-fastapi
-uvicorn
-python-multipart
-aiofiles
+flask
 yt-dlp
