@@ -8,7 +8,12 @@ app = Flask(__name__)
 app.secret_key = "replace_with_a_secure_random_key"
 
 DOWNLOAD_DIR = "downloads"
-os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+if not os.path.isdir(DOWNLOAD_DIR):
+    # If "downloads" is a file, remove it first.
+    if os.path.exists(DOWNLOAD_DIR):
+        os.remove(DOWNLOAD_DIR)
+    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
 COOKIES_FILE = "cookies.txt"  # Make sure it's set/uploaded
 
 def get_yt_options(url, fmt, res, outfile):
