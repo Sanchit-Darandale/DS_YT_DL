@@ -3,6 +3,140 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DS YouTube Audio/Video Downloader</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+    }
+    input, button, select {
+      padding: 10px;
+      margin: 10px;
+      width: 80%;
+      max-width: 500px;
+      font-size: 16px;
+    }
+    .video-player {
+      margin-top: 20px;
+      width: 90%;
+      max-width: 720px;
+    }
+    .buttons {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 80%;
+      max-width: 500px;
+    }
+    .details {
+      text-align: center;
+      margin-top: 20px;
+    }
+    img.poster {
+      width: 300px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>YouTube Downloader</h1>
+  <input type="text" id="ytUrl" placeholder="Paste YouTube URL here" />
+  <div id="meta" class="details"></div>
+
+  <select id="type">
+    <option value="audio">Audio (MP3)</option>
+    <option value="video">Video (MP4)</option>
+  </select>
+
+  <select id="quality" style="display: none;">
+    <option value="360">360p</option>
+    <option value="480">480p</option>
+    <option value="720">720p</option>
+    <option value="1080">1080p</option>
+  </select>
+
+  <button onclick="getInfo()">Fetch Info</button>
+  <button onclick="download()">Download</button>
+
+  <div id="player" class="video-player"></div>
+
+  <script>
+    const BACKEND_URL = "https://project-03-hop0.onrender.com/proxy"; // your render backend proxy
+
+    document.getElementById("type").addEventListener("change", function () {
+      const isVideo = this.value === "video";
+      document.getElementById("quality").style.display = isVideo ? "block" : "none";
+    });
+
+    function getInfo() {
+      const url = document.getElementById("ytUrl").value.trim();
+      if (!url) return alert("Enter YouTube URL");
+
+      fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`)
+        .then(res => res.json())
+        .then(data => {
+          const metaDiv = document.getElementById("meta");
+          metaDiv.innerHTML = `
+            <h3>${data.title}</h3>
+            <p>By: ${data.author_name}</p>
+            <img class="poster" src="${data.thumbnail_url}" alt="Thumbnail"/>
+          `;
+        })
+        .catch(() => alert("❌ Failed to fetch video info."));
+    }
+
+    function download() {
+      const url = document.getElementById("ytUrl").value.trim();
+      const type = document.getElementById("type").value;
+      const quality = document.getElementById("quality").value;
+      const ext = type === "audio" ? "mp3" : quality;
+
+      if (!url) return alert("Enter YouTube URL");
+
+      const fullUrl = `${BACKEND_URL}?url=${encodeURIComponent(url)}&ext=${ext}`;
+
+      if (type === "audio") {
+        const audio = document.createElement("audio");
+        audio.src = fullUrl;
+        audio.controls = true;
+        audio.autoplay = true;
+
+        document.getElementById("player").innerHTML = "";
+        document.getElementById("player").appendChild(audio);
+
+        const a = document.createElement("a");
+        a.href = fullUrl;
+        a.download = "audio.mp3";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+      } else {
+        document.getElementById("player").innerHTML = `
+          <video width="100%" controls autoplay>
+            <source src="${fullUrl}" type="video/mp4">
+            Your browser does not support video playback.
+          </video>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
+
+
+<!--
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>YouTube Audio/Video Downloader</title>
   <style>
     body {
@@ -86,3 +220,4 @@
   </script>
 </body>
 </html>
+-->
