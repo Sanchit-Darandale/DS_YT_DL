@@ -1,200 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DS YouTube Audio/Video Downloader</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>YouTube Downloader</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    :root {
-      --bg-dark: #0f1117;
-      --bg-light: #fdfdfd;
-      --text-dark: #ffffff;
-      --text-light: #111111;
-      --primary: #00c9a7;
-      --secondary: #232931;
-      --accent: #ff4c60;
-      --glass: rgba(255, 255, 255, 0.05);
-    }
-
     body {
-      font-family: 'Poppins', sans-serif;
-      background: var(--bg-dark);
-      color: var(--text-dark);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 40px 20px;
-      transition: background 0.5s ease, color 0.5s ease;
+      background: linear-gradient(120deg, #232526, #414345);
       min-height: 100vh;
     }
-
-    .container {
-      background: var(--glass);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 15px;
-      padding: 30px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
-      width: 100%;
-      max-width: 600px;
-      animation: fadeIn 1s ease forwards;
+    .yt-card {
+      background: #fff;
+      border-radius: 1rem;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, .2);
+      padding: 2rem 2rem 1.5rem 2rem;
+      margin-top: 3rem;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
     }
-
-    h1 {
-      color: var(--primary);
-      text-align: center;
-      margin-bottom: 20px;
+    .yt-logo {
+      width: 60px;
+      margin-bottom: 1rem;
     }
-
-    input, button, select {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      transition: 0.3s;
-    }
-
-    input, select {
-      background: var(--secondary);
-      color: white;
-    }
-
-    button {
-      background: var(--primary);
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: var(--accent);
-    }
-
-    .details {
-      text-align: center;
-      margin-top: 20px;
-      animation: slideIn 1s ease forwards;
-    }
-
-    .poster {
-      width: 280px;
-      border-radius: 10px;
-      margin-top: 15px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
-    }
-
-    .video-player {
-      margin-top: 20px;
-      width: 100%;
-    }
-
-    .footer {
-      margin-top: 40px;
-      color: var(--primary);
-      text-align: center;
-      font-size: 14px;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
-    }
-
-    @keyframes slideIn {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+    .form-label {
+      font-weight: 500;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🎵 YouTube Downloader</h1>
-    <input type="text" id="ytUrl" placeholder="Paste YouTube URL here" />
-
-    <select id="type">
-      <option value="audio">Audio (MP3)</option>
-      <option value="video">Video (MP4)</option>
-    </select>
-
-    <select id="quality" style="display: none;">
-      <option value="360">360p</option>
-      <option value="480">480p</option>
-      <option value="720">720p</option>
-      <option value="1080">1080p</option>
-    </select>
-
-    <button onclick="getInfo()">Fetch Info</button>
-    <button onclick="download()">Download</button>
-
-    <div id="meta" class="details"></div>
-    <div id="player" class="video-player"></div>
+    <div class="yt-card">
+      <div class="text-center">
+        <img src="https://www.youtube.com/about/static/svgs/icons/brand-resources/YouTube_icon_full-color.svg?cache=f2ec7a5" alt="YouTube" class="yt-logo">
+        <h4 class="mb-3 mt-1">YouTube Downloader</h4>
+        <p class="text-muted mb-3">Fast, simple, elegant – Download YouTube Audio or Video</p>
+      </div>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, msg in messages %}
+            <div class="alert alert-{{category}}">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label">YouTube Video URL</label>
+          <input type="url" class="form-control" name="url" placeholder="https://www.youtube.com/watch?v=..." required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Download Type</label>
+          <select class="form-select" name="type" id="downloadType" required>
+            <option value="video">Video</option>
+            <option value="audio">Audio</option>
+          </select>
+        </div>
+        <div class="mb-3" id="resolutionDiv">
+          <label class="form-label">Resolution</label>
+          <select class="form-select" name="resolution">
+            <option value="1080">1080p</option>
+            <option value="720">720p</option>
+            <option value="480">480p</option>
+            <option value="360">360p</option>
+            <option value="240">240p</option>
+            <option value="144">144p</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-danger w-100 fw-bold">Download</button>
+      </form>
+      <div class="mt-3 text-center text-muted">
+        <small>By using this tool you agree not to violate YouTube's TOS.</small>
+      </div>
+    </div>
   </div>
-
-  <div class="footer">Made With ❤️ by Sanchit</div>
-
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const BACKEND_URL = "https://dsytdldr.onrender.com/proxy";
-
-    document.getElementById("type").addEventListener("change", function () {
-      const isVideo = this.value === "video";
-      document.getElementById("quality").style.display = isVideo ? "block" : "none";
+    // Hide resolution when audio selected
+    document.getElementById('downloadType').addEventListener('change', function() {
+      document.getElementById('resolutionDiv').style.display = this.value === 'video' ? 'block' : 'none';
     });
-
-    function getInfo() {
-      const url = document.getElementById("ytUrl").value.trim();
-      if (!url) return alert("Enter YouTube URL");
-
-      fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`)
-        .then(res => res.json())
-        .then(data => {
-          const metaDiv = document.getElementById("meta");
-          metaDiv.innerHTML = `
-            <h3>${data.title}</h3>
-            <p>By: ${data.author_name}</p>
-            <img class="poster" src="${data.thumbnail_url}" alt="Thumbnail"/>
-          `;
-        })
-        .catch(() => alert("❌ Failed to fetch video info."));
-    }
-
-    function download() {
-      const url = document.getElementById("ytUrl").value.trim();
-      const type = document.getElementById("type").value;
-      const quality = document.getElementById("quality").value;
-      const ext = type === "audio" ? "mp3" : quality;
-
-      if (!url) return alert("Enter YouTube URL");
-
-      const fullUrl = `${BACKEND_URL}?url=${encodeURIComponent(url)}&ext=${ext}`;
-
-      if (type === "audio") {
-        const audio = document.createElement("audio");
-        audio.src = fullUrl;
-        audio.controls = true;
-        audio.autoplay = true;
-
-        document.getElementById("player").innerHTML = "";
-        document.getElementById("player").appendChild(audio);
-
-        const a = document.createElement("a");
-        a.href = fullUrl;
-        a.download = "audio.mp3";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } else {
-        document.getElementById("player").innerHTML = `
-          <video width="100%" controls autoplay>
-            <source src="${fullUrl}" type="video/mp4">
-            Your browser does not support video playback.
-          </video>
-        `;
-      }
-    }
   </script>
 </body>
 </html>
