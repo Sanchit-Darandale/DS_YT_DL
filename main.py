@@ -5,6 +5,7 @@ import os
 import time
 import uuid
 import shutil
+import traceback
 
 app = Flask(__name__)
 
@@ -70,9 +71,8 @@ def proxy():
             # Handle single video/audio
             final_file = ydl.prepare_filename(info)
             return send_file(final_file, as_attachment=True)
-
     except Exception as e:
-        return Response(f"Error: {str(e)}", status=500)
+        return Response(f"Error: {str(e)}\n\n{traceback.format_exc()}", status=500)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
