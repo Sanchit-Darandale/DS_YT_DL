@@ -1,7 +1,7 @@
 import os
 import tempfile
 import json
-from flask import Flask, request, jsonify, send_file, Response
+from flask import Flask, render_temp, request, jsonify, send_file, Response
 import yt_dlp
 import ffmpeg
 
@@ -17,6 +17,10 @@ def progress_hook(d):
             'speed': d.get('_speed_str', 'N/A').strip(),
             'eta': d.get('_eta_str', 'N/A').strip()
         }
+
+@app.route("/")
+def home():
+    return render_template("index.html")
 
 @app.route('/download', methods=['POST'])
 def download_video():
