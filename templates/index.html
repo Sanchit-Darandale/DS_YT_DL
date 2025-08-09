@@ -8,9 +8,7 @@
   <style>
     :root {
       --bg-dark: #0f1117;
-      --bg-light: #fdfdfd;
       --text-dark: #ffffff;
-      --text-light: #111111;
       --primary: #00c9a7;
       --secondary: #232931;
       --accent: #ff4c60;
@@ -36,7 +34,7 @@
       box-shadow: 0 0 20px rgba(0,0,0,0.5);
       width: 100%;
       max-width: 600px;
-      animation: fadeIn 1s ease forwards;
+      animation: fadeIn 0.8s ease forwards;
     }
     h1 {
       color: var(--primary);
@@ -101,7 +99,7 @@
   <div class="footer">Made With ❤️ by Sanchit</div>
 
   <script>
-    const API_BASE = "https://ds-yt-dl-bid0.onrender.com/download/";
+    const API_BASE = "https://ds-yt-dl-bid0.onrender.com/download";
 
     document.getElementById("type").addEventListener("change", function () {
       const isVideo = this.value === "video";
@@ -115,6 +113,10 @@
       fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`)
         .then(res => res.json())
         .then(data => {
+          if (data.error) {
+            alert("❌ Failed to fetch video info.");
+            return;
+          }
           document.getElementById("meta").innerHTML = `
             <h3>${data.title}</h3>
             <p>By: ${data.author_name}</p>
@@ -131,30 +133,47 @@
 
       if (!url) return alert("Enter YouTube URL");
 
-      let apiUrl = `${API_BASE}${encodeURIComponent(url)}?mode=${type}`;
-      if (type === "video") apiUrl += `&quality=${quality}`;
+      // Correct API URL format for backend
+      let apiUrl = `${API_BASE}?url=${encodeURIComponent(url)}&mode=${type}`;
+      if (type === "video") apiUrl += `&quality=${encodeURIComponent(quality)}`;
+
+      document.getElementById("player").innerHTML = "";
 
       if (type === "audio") {
         const audio = document.createElement("audio");
         audio.src = apiUrl;
         audio.controls = true;
         audio.autoplay = true;
-        document.getElementById("player").innerHTML = "";
         document.getElementById("player").appendChild(audio);
 
+        // Trigger file download
         const a = document.createElement("a");
         a.href = apiUrl;
         a.download = "audio.mp3";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+
       } else {
-        document.getElementById("player").innerHTML = `
-          <video width="100%" controls autoplay>
-            <source src="${apiUrl}" type="video/mp4">
-            Your browser does not support video playback.
-          </video>
-        `;
+        const video = document.createElement("video");
+        video.width = "100%";
+        video.controls = true;
+        video.autoplay = true;
+
+        const source = document.createElement("source");
+        source.src = apiUrl;
+        source.type = "video/mp4";
+
+        video.appendChild(source);
+        document.getElementById("player").appendChild(video);
+
+        // Trigger file download
+        const a = document.createElement("a");
+        a.href = apiUrl;
+        a.download = `video_${quality}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       }
     }
   </script>
