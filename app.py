@@ -1,72 +1,72 @@
-from flask import Flask, request, render_template, send_file, redirect, url_for, flash
-import os
+from flask import Flask, request, send_file, jsonify
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
-import uuid
+import tempfile
+import os
 
 app = Flask(__name__)
-app.secret_key = "replace_with_a_secure_random_key"
 
-DOWNLOAD_DIR = "downloads"
-COOKIES_FILE = "cookies.txt"  # Make sure this file is generated from a browser
+# ===== Netscape format cookies =====
+cookies_text = """# Netscape HTTP Cookie File
+.youtube.com	TRUE	/	FALSE	0	PREF	hl=en&tz=UTC
+.youtube.com	TRUE	/	TRUE	0	SOCS	CAI
+.youtube.com	TRUE	/	TRUE	0	YSC	I96mgeAGdTY
+.youtube.com	TRUE	/	TRUE	1770316658	__Secure-ROLLOUT_TOKEN	CKrGnKuLz4CJORDfrejyw9-OAxj2xYvhr_6OAw%3D%3D
+.youtube.com	TRUE	/	TRUE	1770316659	VISITOR_INFO1_LIVE	36-8gSkAUV0
+.youtube.com	TRUE	/	TRUE	1770316659	VISITOR_PRIVACY_METADATA	CgJJThIEGgAgNA%3D%3D
+.youtube.com	TRUE	/	TRUE	1817836659	__Secure-YT_TVFAS	t=487140&s=2
+.youtube.com	TRUE	/	TRUE	1770316659	DEVICE_INFO	ChxOelV6TWpFd05USTBPRGN5TXpNMU5UWTROdz09EPOq3sQGGNHTncQG
+.youtube.com	TRUE	/	TRUE	1754766458	GPS	1
+.youtube.com	TRUE	/tv	TRUE	1787596659	__Secure-YT_DERP	CJbI56tB
+"""
 
-if not os.path.isdir(DOWNLOAD_DIR):
-    if os.path.exists(DOWNLOAD_DIR):
-        os.remove(DOWNLOAD_DIR)
-    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+# Save cookies to a temp file
+cookie_file_path = tempfile.NamedTemporaryFile(delete=False, suffix=".txt").name
+with open(cookie_file_path, "w", encoding="utf-8") as f:
+    f.write(cookies_text)
 
-def get_yt_options(url, fmt, res, outfile):
-    if fmt == "audio":
-        video_format = "bestaudio[ext=m4a]/bestaudio"
-        merge = None
+@app.route('/download', methods=['GET'])
+def download():
+    url = request.args.get('url')
+    mode = request.args.get('mode', 'video').lower()
+    quality = request.args.get('quality', '720')
+
+    if not url:
+        return jsonify({"error": "Missing 'url' parameter"}), 400
+
+    # Avoid ffmpeg requirement: request a single muxed MP4 or M4A file
+    if mode == 'video':
+        video_format = f"best[height<={quality}][ext=mp4]"
+        merge_format = None
+    elif mode == 'audio':
+        video_format = "bestaudio[ext=m4a]"
+        merge_format = None
     else:
-        video_format = f"bestvideo[height<={res}]+bestaudio/best" if res else "bestvideo+bestaudio/best"
-        merge = "mp4"
+        return jsonify({"error": "Invalid mode. Use 'audio' or 'video'"}), 400
 
-    return {
-        "cookiefile": COOKIES_FILE if os.path.exists(COOKIES_FILE) else None,
-        "format": video_format,
-        "merge_output_format": merge,
-        "outtmpl": outfile,
-        "noplaylist": False,
-        "quiet": True,
+    # Temp output dir
+    output_dir = tempfile.mkdtemp()
+    output_template = os.path.join(output_dir, "%(title)s.%(ext)s")
+
+    ydl_opts = {
+        'cookiefile': cookie_file_path,
+        'format': video_format,
+        'merge_output_format': merge_format,
+        'outtmpl': output_template,
+        'noplaylist': True,
+        'quiet': True
     }
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        url = request.form["url"].strip()
-        fmt = request.form["type"]
-        res = request.form.get("resolution", "1080").strip() if fmt == "video" else None
-        filename = f"{uuid.uuid4()}.%(ext)s"
-        filepath = os.path.join(DOWNLOAD_DIR, filename)
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            filename = ydl.prepare_filename(info)
+    except DownloadError as e:
+        return jsonify({"error": str(e)}), 500
 
-        if not os.path.exists(COOKIES_FILE):
-            flash("❌ Error: cookies.txt file not found. Please upload or generate it.", "danger")
-            return redirect(url_for("index"))
+    return send_file(filename, as_attachment=True)
 
-        ydl_opts = get_yt_options(url, fmt, res, filepath)
-
-        try:
-            with YoutubeDL(ydl_opts) as ydl:
-                result = ydl.extract_info(url, download=True)
-                real_file = ydl.prepare_filename(result)
-        except DownloadError as e:
-            flash(f"❌ Download failed: {str(e)}", "danger")
-            return redirect(url_for('index'))
-
-        basename = os.path.basename(real_file)
-        return redirect(url_for('download_file', filename=basename))
-
-    return render_template("index.html")
-
-@app.route("/download/<filename>")
-def download_file(filename):
-    file_path = os.path.join(DOWNLOAD_DIR, filename)
-    if not os.path.exists(file_path):
-        flash("File not found.", "danger")
-        return redirect(url_for('index'))
-    return send_file(file_path, as_attachment=True)
-
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    # Render will use PORT env var
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
