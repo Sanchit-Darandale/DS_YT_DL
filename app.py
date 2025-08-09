@@ -6,7 +6,7 @@ import os
 from flask_cors import CORS
 
 app = Flask(__name__, template_folder="templates")
-CORS(app, resources={r"/*": {"origins": "*"}}) 
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # ===== Netscape format cookies =====
 cookies_text = """# Netscape HTTP Cookie File
@@ -44,7 +44,7 @@ def download():
     if not url:
         return jsonify({"error": "Missing 'url' parameter"}), 400
 
-    # Choose formats
+    # Choose yt-dlp options
     if mode == "audio":
         ydl_opts = {
             "format": "bestaudio/best",
@@ -67,12 +67,19 @@ def download():
     try:
         with YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info_dict)
-            if mode == "audio":
-                filename = filename.rsplit(".", 1)[0] + ".mp3"
 
-        # Send file directly to user
-        return send_file(filename, as_attachment=True)
+            # Get the actual final file path from yt-dlp
+            if "requested_downloads" in info_dict and info_dict["requested_downloads"]:
+                final_path = info_dict["requested_downloads"][0]["filepath"]
+            else:
+                final_path = ydl.prepare_filename(info_dict)
+
+            if mode == "audio" and not final_path.endswith(".mp3"):
+                base, _ = os.path.splitext(final_path)
+                final_path = base + ".mp3"
+
+        # Serve the file
+        return send_file(final_path, as_attachment=True)
 
     except DownloadError as e:
         return jsonify({"error": str(e)}), 500
@@ -80,6 +87,5 @@ def download():
         return jsonify({"error": str(e)}), 400
 
 if __name__ == '__main__':
-    # Render will use PORT env var
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
