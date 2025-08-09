@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DS YouTube Audio/Video Downloader</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg-dark:#0f1117; --glass:rgba(255,255,255,0.04);
+      --primary:#00c9a7; --accent:#ff4c60; --secondary:#232931;
+      --text:#ffffff;
+    }
+    *{box-sizing:border-box}
+    body{
+      font-family:'Poppins',sans-serif;
+      background:var(--bg-dark);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+    }
+    .container{
+      width:100%; max-width:720px;
+      background:var(--glass);
+      border-radius:14px;
+      padding:26px;
+      box-shadow:0 8px 40px rgba(0,0,0,0.6);
+      border:1px solid rgba(255,255,255,0.06);
+    }
+    h1{color:var(--primary); text-align:center; margin:0 0 14px}
+    label{font-size:13px; opacity:.9}
+    input[type="text"], select, button{
+      width:100%;
+      padding:12px 14px;
+      margin-top:8px;
+      margin-bottom:12px;
+      border-radius:10px;
+      border:none;
+      font-size:15px;
+    }
+    input, select{ background:var(--secondary); color:#fff }
+    button{ background:var(--primary); color:#041018; font-weight:600; cursor:pointer }
+    button.secondary{ background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--text) }
+    .flex{display:flex; gap:12px}
+    .flex .col{flex:1}
+    .poster{ width:260px; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,0.6) }
+    .meta{ text-align:center; margin-top:10px }
+    .player{ margin-top:18px }
+    .progress-wrap{ margin-top:16px }
+    .progress-bar{
+      height:14px; border-radius:10px; overflow:hidden; background:rgba(255,255,255,0.06)
+    }
+    .progress-bar > i{
+      display:block; height:100%; width:0%;
+      background:linear-gradient(90deg,var(--primary),var(--accent));
+      transition:width 0.3s ease;
+    }
+    .status { font-size:13px; margin-top:6px; color: #cbeee0; display:flex; justify-content:space-between }
+    .footer{ text-align:center; color:var(--primary); margin-top:18px; font-size:13px }
+    .small-link { display:inline-block; margin-top:8px; color:var(--primary); text-decoration:none; }
+    @media (max-width:720px){
+      .poster{ width:160px }
+      .flex{flex-direction:column}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎵 DS YouTube Downloader</h1>
+
+    <label for="ytUrl">YouTube URL</label>
+    <input id="ytUrl" type="text" placeholder="Paste YouTube URL here (https://...)" />
+
+    <div class="flex">
+      <div class="col">
+        <label for="type">Mode</label>
+        <select id="type">
+          <option value="video" selected>Video (MP4)</option>
+          <option value="audio">Audio (M4A)</option>
+        </select>
+      </div>
+
+      <div class="col" id="quality-wrap" style="display:block">
+        <label for="quality">Quality (video)</label>
+        <select id="quality">
+          <option value="360">360p</option>
+          <option value="480">480p</option>
+          <option value="720" selected>720p</option>
+          <option value="1080">1080p</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="flex" style="margin-top:6px">
+      <button id="infoBtn" class="secondary" style="flex:1">Fetch Info</button>
+      <button id="downloadBtn" style="flex:1">Start Download</button>
+    </div>
+
+    <div id="meta" class="meta"></div>
+
+    <div class="progress-wrap" id="progressWrap" style="display:none">
+      <div class="progress-bar"><i id="progressFill"></i></div>
+      <div class="status">
+        <div id="progressText">0%</div>
+        <div id="progressDetails">ETA: -- • Speed: --</div>
+      </div>
+    </div>
+
+    <div id="player" class="player"></div>
+
+    <div class="footer">Made With ❤️ by Sanchit</div>
+  </div>
+
+  <script>
+    /**
+     * FRONTEND for Render-ready downloader backend
+     * - Expects backend endpoints:
+     *   POST   /download        -> JSON { "download_id": "<id>" }
+     *   GET    /progress/<id>   -> SSE text messages (percent strings or final file signal)
+     *   GET    /file/<id>       -> serves final file
+     *
+     * NOTE: If your backend expects the YouTube URL to be URL-encoded,
+     * change `payload.url = rawUrl` to `payload.url = encodeURIComponent(rawUrl)`.
+     *
+     * Also ensure your backend enables CORS for this frontend (Access-Control-Allow-Origin).
+     */
+
+    // ========== CONFIG ==========
+    const BACKEND_URL = "https://ds-yt-dl-bid0.onrender.com"; // set to your Render backend
+
+    // ========== UI Elements ==========
+    const typeEl = document.getElementById('type');
+    const qualityWrap = document.getElementById('quality-wrap');
+    const infoBtn = document.getElementById('infoBtn');
+    const dlBtn = document.getElementById('downloadBtn');
+    const ytUrlEl = document.getElementById('ytUrl');
+    const metaDiv = document.getElementById('meta');
+    const playerDiv = document.getElementById('player');
+    const progressWrap = document.getElementById('progressWrap');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const progressDetails = document.getElementById('progressDetails');
+
+    let evtSource = null;
+    let currentDownloadId = null;
+
+    // UI wiring
+    typeEl.addEventListener('change', () => {
+      qualityWrap.style.display = typeEl.value === 'video' ? 'block' : 'none';
+    });
+
+    infoBtn.addEventListener('click', fetchInfo);
+    dlBtn.addEventListener('click', startDownload);
+
+    // small helper to escape HTML in meta display
+    function escapeHtml(s) {
+      if (!s) return '';
+      return s.replace(/[&<>"']/g, function (m) {
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);
+      });
+    }
+
+    // ========== Fetch metadata (thumbnail/title) using noembed ==========
+    function fetchInfo(){
+      const url = ytUrlEl.value.trim();
+      if(!url) return alert('Please enter a YouTube URL');
+
+      metaDiv.innerHTML = 'Loading info...';
+      fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`)
+        .then(r => r.json())
+        .then(data => {
+          metaDiv.innerHTML = `
+            <h3 style="margin:6px 0 2px">${escapeHtml(data.title || 'Untitled')}</h3>
+            <div style="color:#cbeee0;margin-bottom:8px">By: ${escapeHtml(data.author_name || 'Unknown')}</div>
+            <img class="poster" src="${data.thumbnail_url || ''}" alt="thumbnail" />
+          `;
+        })
+        .catch(err => {
+          console.warn(err);
+          metaDiv.innerHTML = '';
+          alert('Failed to fetch video metadata');
+        });
+    }
+
+    // ========== Download flow ==========
+    async function startDownload(){
+      const rawUrl = ytUrlEl.value.trim();
+      if(!rawUrl) return alert('Please enter a YouTube URL');
+
+      const mode = typeEl.value;
+      const quality = document.getElementById('quality').value;
+
+      // UI: prepare
+      resetPlayer();
+      progressWrap.style.display = 'block';
+      setProgress(0, 'ETA: -- • Speed: --');
+      toggleControls(false);
+
+      try {
+        // Build payload
+        const payload = { url: rawUrl, mode: mode };
+        if (mode === 'video') payload.quality = quality;
+
+        // NOTE: if your backend wants encoded URL: payload.url = encodeURIComponent(rawUrl)
+
+        const res = await fetch(`${BACKEND_URL}/download`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const txt = await res.text().catch(()=>null);
+          throw new Error(txt || `Server returned ${res.status}`);
+        }
+
+        const data = await res.json().catch(()=>null);
+        const downloadId = (data && (data.download_id || data.downloadId || data.id)) || null;
+        if (!downloadId) throw new Error('No download_id returned from server');
+
+        currentDownloadId = downloadId;
+        listenProgress(downloadId, mode);
+
+      } catch (err) {
+        console.error(err);
+        alert('Download start failed: ' + (err.message || err));
+        toggleControls(true);
+      }
+    }
+
+    // SSE listening to progress endpoint
+    function listenProgress(downloadId, mode) {
+      // close previous
+      if (evtSource) {
+        try { evtSource.close(); } catch(e){ }
+        evtSource = null;
+      }
+
+      // Create EventSource
+      const sseUrl = `${BACKEND_URL}/progress/${encodeURIComponent(downloadId)}`;
+      evtSource = new EventSource(sseUrl);
+
+      evtSource.onmessage = (e) => {
+        const msg = (e.data || '').toString().trim();
+        // try JSON
+        let parsed = null;
+        try { parsed = JSON.parse(msg); } catch(_) { parsed = null; }
+
+        if (parsed && typeof parsed === 'object') {
+          // if backend sends JSON { percent, eta, speed, status, file }
+          if (parsed.percent) setProgress(parseFloat(parsed.percent), `ETA: ${parsed.eta||'--'} • Speed: ${parsed.speed||'--'}`);
+          if (parsed.file) onDownloadReady(downloadId, mode);
+          if (parsed.status && parsed.status.toLowerCase() === 'error') {
+            evtSource.close();
+            alert('Error: ' + (parsed.error || 'download failed'));
+            toggleControls(true);
+          }
+          return;
+        }
+
+        // fallback: plain text messages
+        if (!msg) return;
+
+        // If message contains a percentage like "12.3%"
+        const percMatch = msg.match(/(\d{1,3}(?:\.\d+)?)\s*%/);
+        if (percMatch) {
+          const p = parseFloat(percMatch[1]);
+          setProgress(p, progressDetails.textContent || 'ETA: -- • Speed: --');
+          return;
+        }
+
+        // If contains ETA or Speed, display in details (some backends send "ETA: 00:10 • Speed: 200KiB/s")
+        if (/eta|ETA|speed|ETA:|Speed:/.test(msg)) {
+          progressDetails.textContent = msg;
+          return;
+        }
+
+        // If backend signals finished by giving file path or file name or a "DONE" message
+        if (/\.mp4$|\.m4a$|file:|done|finished/i.test(msg)) {
+          // close SSE and finalize
+          try { evtSource.close(); } catch(e){ }
+          setProgress(100, 'Completed');
+          onDownloadReady(downloadId, mode);
+          return;
+        }
+
+        // Otherwise, show raw as details
+        progressDetails.textContent = msg;
+      };
+
+      evtSource.onerror = (err) => {
+        console.warn('SSE error', err);
+        // Try to close gracefully
+        try { evtSource.close(); } catch(e) {}
+        evtSource = null;
+        // leave controls disabled until user restarts
+        // optionally re-enable with toggleControls(true)
+      };
+    }
+
+    // Called when backend reports the file is ready
+    function onDownloadReady(downloadId, mode) {
+      const fileUrl = `${BACKEND_URL}/file/${encodeURIComponent(downloadId)}`;
+      // Show player + download link
+      playerDiv.innerHTML = '';
+
+      if (mode === 'audio') {
+        const audio = document.createElement('audio');
+        audio.controls = true;
+        audio.src = fileUrl;
+        audio.autoplay = false;
+        playerDiv.appendChild(audio);
+      } else {
+        const video = document.createElement('video');
+        video.controls = true;
+        video.width = 640;
+        video.style.maxWidth = '100%';
+        video.src = fileUrl;
+        playerDiv.appendChild(video);
+      }
+
+      const a = document.createElement('a');
+      a.href = fileUrl;
+      a.className = 'small-link';
+      a.textContent = '⬇️ Download File';
+      a.setAttribute('download', '');
+      playerDiv.appendChild(a);
+
+      // re-enable controls
+      toggleControls(true);
+    }
+
+    // Progress UI helpers
+    function setProgress(percent, detailsText) {
+      const p = Math.max(0, Math.min(100, parseFloat(percent || 0)));
+      progressFill.style.width = p + '%';
+      progressText.textContent = (isNaN(p) ? '0%' : (Math.round(p*10)/10) + '%');
+      if (detailsText) progressDetails.textContent = detailsText;
+    }
+
+    // Reset player and progress UI
+    function resetPlayer() {
+      playerDiv.innerHTML = '';
+      progressWrap.style.display = 'none';
+      setProgress(0, 'ETA: -- • Speed: --');
+    }
+
+    // Enable/disable inputs during active download
+    function toggleControls(enable) {
+      dlBtn.disabled = !enable;
+      infoBtn.disabled = !enable;
+      ytUrlEl.disabled = !enable;
+      typeEl.disabled = !enable;
+      document.getElementById('quality').disabled = !enable;
+      if (!enable) {
+        // show progress area
+        progressWrap.style.display = 'block';
+      }
+    }
+
+    // cleanup SSE on page unload
+    window.addEventListener('beforeunload', () => {
+      if (evtSource) {
+        try { evtSource.close(); } catch(e) {}
+      }
+    });
+
+  </script>
+</body>
+</html>
