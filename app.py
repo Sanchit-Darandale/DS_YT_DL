@@ -4,6 +4,7 @@ import time
 import uuid
 import json
 import shutil
+import random
 import tempfile
 import threading
 from datetime import datetime, timedelta
@@ -122,19 +123,25 @@ def download_worker(download_id, url, mode, quality):
         # audio: prefer m4a (widely supported)
         fmt = "bestaudio[ext=m4a]/bestaudio"
 
+    # Random User-Agent list
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+    ]
+
     ydl_opts = {
         "format": fmt,
         "outtmpl": outtmpl,
         "noplaylist": True,
+        "http_headers": {
+            "User-Agent": random.choice(user_agents)
+        },
         "geo_bypass": True,
+        "cookiefile": "cookies.txt",
         "progress_hooks": [make_progress_hook(download_id)],
         "quiet": True,
-        # add cookiefile if present in project root
     }
-
-    # add cookiefile if exists
-    if os.path.exists("cookies.txt"):
-        ydl_opts["cookiefile"] = "cookies.txt"
 
     try:
         downloads[download_id]["status"] = "downloading"
