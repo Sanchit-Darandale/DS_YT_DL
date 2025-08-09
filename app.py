@@ -27,39 +27,29 @@ cookie_file_path = tempfile.NamedTemporaryFile(delete=False, suffix=".txt").name
 with open(cookie_file_path, "w", encoding="utf-8") as f:
     f.write(cookies_text)
 
+# Ensure downloads folder exists
+DOWNLOAD_DIR = os.path.join(os.getcwd(), "downloads")
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
 @app.route("/")
 def home():
     return render_template("index.html")
 
-@app.route("/download/<path:url>")
-def download(url):
-    mode = request.args.get("mode", "video")
+@app.route("/download")
+def download():
+    url = request.args.get("url")
+    mode = request.args.get("mode", "video").lower()
     quality = request.args.get("quality", "480p")
-    info = request.args.get("info", "false").lower() == "true"
 
-    ydl_opts = {}
+    if not url:
+        return jsonify({"error": "Missing 'url' parameter"}), 400
 
-    if info:
-        # 1️⃣ Only fetch info without downloading
-        try:
-            with yt_dlp.YoutubeDL({'quiet': True, 'dump_single_json': True}) as ydl:
-                info_dict = ydl.extract_info(url, download=False)
-                formats = []
-                for f in info_dict.get("formats", []):
-                    if f.get("vcodec") != "none" and f.get("height"):
-                        formats.append({"quality": f"{f['height']}p"})
-                # Remove duplicates & sort
-                formats = sorted(list({f["quality"] for f in formats}),
-                                 key=lambda x: int(x.replace("p", "")))
-                return jsonify({"formats": [{"quality": q} for q in formats]})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 400
-
-    # 2️⃣ Normal download mode
+    # Choose formats
     if mode == "audio":
         ydl_opts = {
             "format": "bestaudio/best",
-            "outtmpl": "%(title)s.%(ext)s",
+            "cookiefile": cookie_file_path,
+            "outtmpl": os.path.join(DOWNLOAD_DIR, "%(title)s.%(ext)s"),
             "postprocessors": [{
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "mp3",
@@ -69,61 +59,26 @@ def download(url):
     else:
         ydl_opts = {
             "format": f"bestvideo[height={quality}]+bestaudio/best[height={quality}]",
-            "outtmpl": "%(title)s.%(ext)s",
+            "cookiefile": cookie_file_path,
+            "outtmpl": os.path.join(DOWNLOAD_DIR, "%(title)s.%(ext)s"),
             "merge_output_format": "mp4",
         }
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info_dict)
             if mode == "audio":
                 filename = filename.rsplit(".", 1)[0] + ".mp3"
-            return send_file(filename, as_attachment=True)
+
+        # Send file directly to user
+        return send_file(filename, as_attachment=True)
+
+    except DownloadError as e:
+        return jsonify({"error": str(e)}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-'''@app.route('/download', methods=['GET'])
-def download():
-    url = request.args.get('url')
-    mode = request.args.get('mode', 'video').lower()
-    quality = request.args.get('quality', '720')
-
-    if not url:
-        return jsonify({"error": "Missing 'url' parameter"}), 400
-
-    # Avoid ffmpeg requirement: request a single muxed MP4 or M4A file
-    if mode == 'video':
-        video_format = f"best[height<={quality}][ext=mp4]"
-        merge_format = None
-    elif mode == 'audio':
-        video_format = "bestaudio[ext=m4a]"
-        merge_format = None
-    else:
-        return jsonify({"error": "Invalid mode. Use 'audio' or 'video'"}), 400
-
-    # Temp output dir
-    output_dir = tempfile.mkdtemp()
-    output_template = os.path.join(output_dir, "%(title)s.%(ext)s")
-
-    ydl_opts = {
-        'cookiefile': cookie_file_path,
-        'format': video_format,
-        'merge_output_format': merge_format,
-        'outtmpl': output_template,
-        'noplaylist': True,
-        'quiet': True
-    }
-
-    try:
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
-    except DownloadError as e:
-        return jsonify({"error": str(e)}), 500
-
-    return send_file(filename, as_attachment=True)
-'''
 if __name__ == '__main__':
     # Render will use PORT env var
     port = int(os.environ.get("PORT", 5000))
