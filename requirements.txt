@@ -1,3 +1,4 @@
-flask
-yt-dlp
 gunicorn
+Flask==3.0.3
+yt-dlp==2025.01.26
+ffmpeg-python==0.2.0
