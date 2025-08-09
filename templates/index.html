@@ -84,7 +84,12 @@
       <option value="video">Video (MP4)</option>
     </select>
 
-    <select id="quality" style="display: none;"></select>
+    <select id="quality" style="display: none;">
+      <option value="360p">360p</option>
+      <option value="480p">480p</option>
+      <option value="720p">720p</option>
+      <option value="1080p">1080p</option>
+    </select>
 
     <button onclick="getInfo()">Fetch Info</button>
     <button onclick="download()">Download</button>
@@ -107,7 +112,6 @@
       const url = document.getElementById("ytUrl").value.trim();
       if (!url) return alert("Enter YouTube URL");
 
-      // 1️⃣ Get basic metadata from noembed
       fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`)
         .then(res => res.json())
         .then(data => {
@@ -118,25 +122,6 @@
           `;
         })
         .catch(() => alert("❌ Failed to fetch video info."));
-
-      // 2️⃣ Get available video qualities from backend
-      fetch(`${API_BASE}${encodeURIComponent(url)}?mode=video&info=true`)
-        .then(res => res.json())
-        .then(data => {
-          const qualitySelect = document.getElementById("quality");
-          qualitySelect.innerHTML = ""; // Clear old options
-          if (data.formats && data.formats.length > 0) {
-            data.formats.forEach(f => {
-              const opt = document.createElement("option");
-              opt.value = f.quality;
-              opt.textContent = f.quality;
-              qualitySelect.appendChild(opt);
-            });
-          } else {
-            qualitySelect.innerHTML = `<option>No qualities found</option>`;
-          }
-        })
-        .catch(err => console.error("Failed to get qualities:", err));
     }
 
     function download() {
