@@ -1,10 +1,12 @@
-from flask import Flask, request, send_file, jsonify
+from flask import Flask, render_template, request, send_file, jsonify
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 import tempfile
 import os
+from flask_cors import CORS
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
+CORS(app, resources={r"/*": {"origins": "*"}}) 
 
 # ===== Netscape format cookies =====
 cookies_text = """# Netscape HTTP Cookie File
@@ -25,6 +27,10 @@ cookie_file_path = tempfile.NamedTemporaryFile(delete=False, suffix=".txt").name
 with open(cookie_file_path, "w", encoding="utf-8") as f:
     f.write(cookies_text)
 
+@app.route("/")
+def home():
+    return render_template("index.html")
+    
 @app.route('/download', methods=['GET'])
 def download():
     url = request.args.get('url')
