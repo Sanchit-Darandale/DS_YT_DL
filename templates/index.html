@@ -1,320 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DS YouTube Audio/Video Downloader</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    :root{
-      --bg-dark:#0f1117; --glass:rgba(255,255,255,0.04);
-      --primary:#00c9a7; --accent:#ff4c60; --secondary:#232931;
-      --text:#ffffff;
+    :root {
+      --bg-dark: #0f1117;
+      --bg-light: #fdfdfd;
+      --text-dark: #ffffff;
+      --text-light: #111111;
+      --primary: #00c9a7;
+      --secondary: #232931;
+      --accent: #ff4c60;
+      --glass: rgba(255, 255, 255, 0.05);
     }
-    *{box-sizing:border-box}
-    body{
-      font-family:'Poppins',sans-serif;
-      background:var(--bg-dark);
-      color:var(--text);
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:28px;
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      min-height: 100vh;
     }
-    .container{
-      width:100%; max-width:720px;
-      background:var(--glass);
-      border-radius:14px;
-      padding:26px;
-      box-shadow:0 8px 40px rgba(0,0,0,0.6);
-      border:1px solid rgba(255,255,255,0.06);
+    .container {
+      background: var(--glass);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 15px;
+      padding: 30px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      width: 100%;
+      max-width: 600px;
+      animation: fadeIn 1s ease forwards;
     }
-    h1{color:var(--primary); text-align:center; margin:0 0 14px}
-    label{font-size:13px; opacity:.9}
-    input[type="text"], select, button{
-      width:100%;
-      padding:12px 14px;
-      margin-top:8px;
-      margin-bottom:12px;
-      border-radius:10px;
-      border:none;
-      font-size:15px;
+    h1 {
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 20px;
     }
-    input, select{ background:var(--secondary); color:#fff }
-    button{ background:var(--primary); color:#041018; font-weight:600; cursor:pointer }
-    button.secondary{ background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--text) }
-    .flex{display:flex; gap:12px}
-    .flex .col{flex:1}
-    .poster{ width:260px; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,0.6) }
-    .meta{ text-align:center; margin-top:10px }
-    .player{ margin-top:18px }
-    .progress-wrap{ margin-top:16px }
-    .progress-bar{
-      height:14px; border-radius:10px; overflow:hidden; background:rgba(255,255,255,0.06)
+    input, button, select {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
     }
-    .progress-bar > i{
-      display:block; height:100%; width:0%;
-      background:linear-gradient(90deg,var(--primary),var(--accent));
-      transition:width 0.3s ease;
+    input, select {
+      background: var(--secondary);
+      color: white;
     }
-    .status { font-size:13px; margin-top:6px; color: #cbeee0; display:flex; justify-content:space-between }
-    .footer{ text-align:center; color:var(--primary); margin-top:18px; font-size:13px }
-    .small-link { display:inline-block; margin-top:8px; color:var(--primary); text-decoration:none; }
-    @media (max-width:720px){
-      .poster{ width:160px }
-      .flex{flex-direction:column}
+    button {
+      background: var(--primary);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
     }
+    button:hover { background: var(--accent); }
+    .details { text-align: center; margin-top: 20px; }
+    .poster {
+      width: 280px;
+      border-radius: 10px;
+      margin-top: 15px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+    }
+    .video-player { margin-top: 20px; width: 100%; }
+    .footer { margin-top: 40px; color: var(--primary); text-align: center; font-size: 14px; }
+    @keyframes fadeIn { from {opacity:0; transform:scale(0.95);} to {opacity:1; transform:scale(1);} }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🎵 DS YouTube Downloader</h1>
+    <h1>🎵 YouTube Downloader</h1>
+    <input type="text" id="ytUrl" placeholder="Paste YouTube URL here" />
 
-    <label for="ytUrl">YouTube URL</label>
-    <input id="ytUrl" type="text" placeholder="Paste YouTube URL here (https://...)" />
+    <select id="type">
+      <option value="audio">Audio (MP3)</option>
+      <option value="video">Video (MP4)</option>
+    </select>
 
-    <div class="flex">
-      <div class="col">
-        <label for="type">Mode</label>
-        <select id="type">
-          <option value="video" selected>Video (MP4)</option>
-          <option value="audio">Audio (M4A)</option>
-        </select>
-      </div>
+    <select id="quality" style="display: none;"></select>
 
-      <div class="col" id="quality-wrap" style="display:block">
-        <label for="quality">Quality (video)</label>
-        <select id="quality">
-          <option value="360">360p</option>
-          <option value="480">480p</option>
-          <option value="720" selected>720p</option>
-          <option value="1080">1080p</option>
-        </select>
-      </div>
-    </div>
+    <button onclick="getInfo()">Fetch Info</button>
+    <button onclick="download()">Download</button>
 
-    <div class="flex" style="margin-top:6px">
-      <button id="infoBtn" class="secondary" style="flex:1">Fetch Info</button>
-      <button id="downloadBtn" style="flex:1">Start Download</button>
-    </div>
-
-    <div id="meta" class="meta"></div>
-
-    <div class="progress-wrap" id="progressWrap" style="display:none">
-      <div class="progress-bar"><i id="progressFill"></i></div>
-      <div class="status">
-        <div id="progressText">0%</div>
-        <div id="progressDetails">ETA: -- • Speed: --</div>
-      </div>
-    </div>
-
-    <div id="player" class="player"></div>
-
-    <div class="footer">Made With ❤️ by Sanchit</div>
+    <div id="meta" class="details"></div>
+    <div id="player" class="video-player"></div>
   </div>
 
+  <div class="footer">Made With ❤️ by Sanchit</div>
+
   <script>
-    const BACKEND_URL = "https://ds-yt-dl-bid0.onrender.com"; // empty => same origin. If using external backend, set full URL e.g. "https://ds-yt-dl-bid0.onrender.com"
+    const API_BASE = "https://ds-yt-dl-bid0.onrender.com/download/";
 
-    // Elements
-    const typeEl = document.getElementById('type');
-    const qualityWrap = document.getElementById('quality-wrap');
-    const infoBtn = document.getElementById('infoBtn');
-    const dlBtn = document.getElementById('downloadBtn');
-    const ytUrlEl = document.getElementById('ytUrl');
-    const metaDiv = document.getElementById('meta');
-    const playerDiv = document.getElementById('player');
-    const progressWrap = document.getElementById('progressWrap');
-    const progressFill = document.getElementById('progressFill');
-    const progressText = document.getElementById('progressText');
-    const progressDetails = document.getElementById('progressDetails');
-
-    let evtSource = null;
-    let currentDownloadId = null;
-
-    // UI wiring
-    typeEl.addEventListener('change', () => {
-      qualityWrap.style.display = typeEl.value === 'video' ? 'block' : 'none';
+    document.getElementById("type").addEventListener("change", function () {
+      const isVideo = this.value === "video";
+      document.getElementById("quality").style.display = isVideo ? "block" : "none";
     });
-    infoBtn.addEventListener('click', fetchInfo);
-    dlBtn.addEventListener('click', startDownload);
 
-    function escapeHtml(s) {
-      if (!s) return '';
-      return s.replace(/[&<>"']/g, function (m) {
-        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);
-      });
-    }
+    function getInfo() {
+      const url = document.getElementById("ytUrl").value.trim();
+      if (!url) return alert("Enter YouTube URL");
 
-    function fetchInfo(){
-      const url = ytUrlEl.value.trim();
-      if(!url) return alert('Please enter a YouTube URL');
-
-      metaDiv.innerHTML = 'Loading info...';
+      // 1️⃣ Get basic metadata from noembed
       fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`)
-        .then(r => r.json())
+        .then(res => res.json())
         .then(data => {
-          metaDiv.innerHTML = `
-            <h3 style="margin:6px 0 2px">${escapeHtml(data.title || 'Untitled')}</h3>
-            <div style="color:#cbeee0;margin-bottom:8px">By: ${escapeHtml(data.author_name || 'Unknown')}</div>
-            <img class="poster" src="${data.thumbnail_url || ''}" alt="thumbnail" />
+          document.getElementById("meta").innerHTML = `
+            <h3>${data.title}</h3>
+            <p>By: ${data.author_name}</p>
+            <img class="poster" src="${data.thumbnail_url}" alt="Thumbnail"/>
           `;
         })
-        .catch(err => {
-          console.warn(err);
-          metaDiv.innerHTML = '';
-          alert('Failed to fetch video metadata');
-        });
+        .catch(() => alert("❌ Failed to fetch video info."));
+
+      // 2️⃣ Get available video qualities from backend
+      fetch(`${API_BASE}${encodeURIComponent(url)}?mode=video&info=true`)
+        .then(res => res.json())
+        .then(data => {
+          const qualitySelect = document.getElementById("quality");
+          qualitySelect.innerHTML = ""; // Clear old options
+          if (data.formats && data.formats.length > 0) {
+            data.formats.forEach(f => {
+              const opt = document.createElement("option");
+              opt.value = f.quality;
+              opt.textContent = f.quality;
+              qualitySelect.appendChild(opt);
+            });
+          } else {
+            qualitySelect.innerHTML = `<option>No qualities found</option>`;
+          }
+        })
+        .catch(err => console.error("Failed to get qualities:", err));
     }
 
-    async function startDownload(){
-      const rawUrl = ytUrlEl.value.trim();
-      if(!rawUrl) return alert('Please enter a YouTube URL');
+    function download() {
+      const url = document.getElementById("ytUrl").value.trim();
+      const type = document.getElementById("type").value;
+      const quality = document.getElementById("quality").value;
 
-      const mode = typeEl.value;
-      const quality = document.getElementById('quality').value;
+      if (!url) return alert("Enter YouTube URL");
 
-      // prepare UI
-      resetPlayer();
-      progressWrap.style.display = 'block';
-      setProgress(0, 'ETA: -- • Speed: --');
-      toggleControls(false);
+      let apiUrl = `${API_BASE}${encodeURIComponent(url)}?mode=${type}`;
+      if (type === "video") apiUrl += `&quality=${quality}`;
 
-      try {
-        const payload = { url: rawUrl, mode };
-        if (mode === 'video') payload.quality = quality;
-
-        const postUrl = (BACKEND_URL || "") + "/download";
-        const res = await fetch(postUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          const txt = await res.text().catch(()=>null);
-          throw new Error(txt || `Server returned ${res.status}`);
-        }
-
-        const data = await res.json();
-        const downloadId = data && (data.download_id || data.downloadId || data.id);
-        if (!downloadId) throw new Error('No download_id returned from server');
-
-        currentDownloadId = downloadId;
-        listenProgress(downloadId, mode);
-      } catch (err) {
-        console.error(err);
-        alert('Download start failed: ' + (err.message || err));
-        toggleControls(true);
-      }
-    }
-
-    function listenProgress(downloadId, mode) {
-      if (evtSource) {
-        try { evtSource.close(); } catch(e){}
-        evtSource = null;
-      }
-      const base = BACKEND_URL || "";
-      const sseUrl = `${base}/progress/${encodeURIComponent(downloadId)}`;
-      evtSource = new EventSource(sseUrl);
-
-      evtSource.onmessage = (e) => {
-        let msg = e.data;
-        if (!msg) return;
-        let parsed = null;
-        try { parsed = JSON.parse(msg); } catch(_) { parsed = null; }
-
-        if (parsed && typeof parsed === "object") {
-          if (parsed.percent !== undefined && parsed.percent !== null) {
-            setProgress(parsed.percent, `ETA: ${parsed.eta||'--'} • Speed: ${parsed.speed||'--'}`);
-          }
-          if (parsed.status && parsed.status === "finished") {
-            // wait for the final 'file' message (server sends {file:true}) - handled next
-          }
-          if (parsed.file) {
-            // ready
-            try { evtSource.close(); } catch(e){}
-            setProgress(100, 'Completed');
-            onDownloadReady(downloadId, mode);
-          }
-          if (parsed.status === "error") {
-            alert('Download error: ' + (parsed.error || 'unknown'));
-            toggleControls(true);
-            try { evtSource.close(); } catch(e){}
-          }
-          return;
-        }
-
-        // fallback: show raw text
-        progressDetails.textContent = msg;
-      };
-
-      evtSource.onerror = (err) => {
-        console.warn('SSE error', err);
-        // don't automatically re-enable UI here — user can retry
-        try { evtSource.close(); } catch(e){}
-        evtSource = null;
-      };
-    }
-
-    function onDownloadReady(downloadId, mode) {
-      const base = BACKEND_URL || "";
-      const fileUrl = `${base}/file/${encodeURIComponent(downloadId)}`;
-
-      playerDiv.innerHTML = '';
-
-      if (mode === 'audio') {
-        const audio = document.createElement('audio');
+      if (type === "audio") {
+        const audio = document.createElement("audio");
+        audio.src = apiUrl;
         audio.controls = true;
-        audio.src = fileUrl;
-        playerDiv.appendChild(audio);
+        audio.autoplay = true;
+        document.getElementById("player").innerHTML = "";
+        document.getElementById("player").appendChild(audio);
+
+        const a = document.createElement("a");
+        a.href = apiUrl;
+        a.download = "audio.mp3";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       } else {
-        const video = document.createElement('video');
-        video.controls = true;
-        video.style.maxWidth = '100%';
-        video.src = fileUrl;
-        playerDiv.appendChild(video);
+        document.getElementById("player").innerHTML = `
+          <video width="100%" controls autoplay>
+            <source src="${apiUrl}" type="video/mp4">
+            Your browser does not support video playback.
+          </video>
+        `;
       }
-
-      const a = document.createElement('a');
-      a.href = fileUrl;
-      a.className = 'small-link';
-      a.textContent = '⬇️ Download File';
-      a.setAttribute('download', '');
-      playerDiv.appendChild(a);
-
-      toggleControls(true);
     }
-
-    function setProgress(percent, detailsText) {
-      const p = Math.max(0, Math.min(100, parseFloat(percent || 0)));
-      progressFill.style.width = p + '%';
-      progressText.textContent = (isNaN(p) ? '0%' : (Math.round(p*10)/10) + '%');
-      if (detailsText) progressDetails.textContent = detailsText;
-    }
-
-    function resetPlayer() {
-      playerDiv.innerHTML = '';
-      progressWrap.style.display = 'none';
-      setProgress(0, 'ETA: -- • Speed: --');
-    }
-
-    function toggleControls(enable) {
-      dlBtn.disabled = !enable;
-      infoBtn.disabled = !enable;
-      ytUrlEl.disabled = !enable;
-      typeEl.disabled = !enable;
-      document.getElementById('quality').disabled = !enable;
-      if (!enable) progressWrap.style.display = 'block';
-    }
-
-    window.addEventListener('beforeunload', () => {
-      if (evtSource) {
-        try { evtSource.close(); } catch(e){}
-      }
-    });
-
   </script>
 </body>
 </html>
