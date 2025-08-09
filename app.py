@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, jsonify
+from flask import Flask, render_template, request, send_from_directory, jsonify
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 import tempfile
@@ -79,7 +79,7 @@ def download():
                 final_path = base + ".mp3"
 
         # Serve the file
-        return send_file(final_path, as_attachment=True)
+        return send_from_directory(DOWNLOAD_FOLDER, final_path, as_attachment=True)
 
     except DownloadError as e:
         return jsonify({"error": str(e)}), 500
