@@ -126,6 +126,7 @@ def download_worker(download_id, url, mode, quality):
         "format": fmt,
         "outtmpl": outtmpl,
         "noplaylist": True,
+        "geo_bypass": True,
         "progress_hooks": [make_progress_hook(download_id)],
         "quiet": True,
         # add cookiefile if present in project root
