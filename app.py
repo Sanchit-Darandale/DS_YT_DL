@@ -30,8 +30,60 @@ with open(cookie_file_path, "w", encoding="utf-8") as f:
 @app.route("/")
 def home():
     return render_template("index.html")
-    
-@app.route('/download', methods=['GET'])
+
+@app.route("/download/<path:url>")
+def download(url):
+    mode = request.args.get("mode", "video")
+    quality = request.args.get("quality", "480p")
+    info = request.args.get("info", "false").lower() == "true"
+
+    ydl_opts = {}
+
+    if info:
+        # 1️⃣ Only fetch info without downloading
+        try:
+            with yt_dlp.YoutubeDL({'quiet': True, 'dump_single_json': True}) as ydl:
+                info_dict = ydl.extract_info(url, download=False)
+                formats = []
+                for f in info_dict.get("formats", []):
+                    if f.get("vcodec") != "none" and f.get("height"):
+                        formats.append({"quality": f"{f['height']}p"})
+                # Remove duplicates & sort
+                formats = sorted(list({f["quality"] for f in formats}),
+                                 key=lambda x: int(x.replace("p", "")))
+                return jsonify({"formats": [{"quality": q} for q in formats]})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
+    # 2️⃣ Normal download mode
+    if mode == "audio":
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "outtmpl": "%(title)s.%(ext)s",
+            "postprocessors": [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "192",
+            }],
+        }
+    else:
+        ydl_opts = {
+            "format": f"bestvideo[height={quality}]+bestaudio/best[height={quality}]",
+            "outtmpl": "%(title)s.%(ext)s",
+            "merge_output_format": "mp4",
+        }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+            filename = ydl.prepare_filename(info_dict)
+            if mode == "audio":
+                filename = filename.rsplit(".", 1)[0] + ".mp3"
+            return send_file(filename, as_attachment=True)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+'''@app.route('/download', methods=['GET'])
 def download():
     url = request.args.get('url')
     mode = request.args.get('mode', 'video').lower()
@@ -71,7 +123,7 @@ def download():
         return jsonify({"error": str(e)}), 500
 
     return send_file(filename, as_attachment=True)
-
+'''
 if __name__ == '__main__':
     # Render will use PORT env var
     port = int(os.environ.get("PORT", 5000))
