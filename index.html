@@ -1,199 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DS YouTube Audio/Video Downloader</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>DS CricStream Platform</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
-    :root {
-      --bg-dark: #0f1117;
-      --bg-light: #fdfdfd;
-      --text-dark: #ffffff;
-      --text-light: #111111;
-      --primary: #00c9a7;
-      --secondary: #232931;
-      --accent: #ff4c60;
-      --glass: rgba(255, 255, 255, 0.05);
+    body { 
+      margin: 0; 
+      background: #111; 
+      color: #fff; 
+      font-family: Arial, sans-serif; 
+      display: flex; 
+      flex-direction: column; 
+      height: 100vh; 
     }
-
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: var(--bg-dark);
-      color: var(--text-dark);
+    header {
+      text-align: center;
+      padding: 15px;
+      font-size: 24px;
+      font-weight: bold;
+      background: linear-gradient(90deg, #ff512f, #dd2476);
+    }
+    main {
+      flex: 1;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
-      padding: 40px 20px;
-      transition: background 0.5s ease, color 0.5s ease;
-      min-height: 100vh;
+      align-items: center;
     }
-
-    .container {
-      background: var(--glass);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 15px;
-      padding: 30px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
-      width: 100%;
-      max-width: 600px;
+    video { 
+      width: 80%; 
+      max-width: 900px; 
+      border-radius: 10px; 
+      outline: none; 
+      box-shadow: 0 0 20px rgba(255,255,255,0.2); 
+      opacity: 0; 
+      transform: scale(0.9);
       animation: fadeIn 1s ease forwards;
     }
-
-    h1 {
-      color: var(--primary);
+    footer {
       text-align: center;
-      margin-bottom: 20px;
-    }
-
-    input, button, select {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      transition: 0.3s;
-    }
-
-    input, select {
-      background: var(--secondary);
-      color: white;
-    }
-
-    button {
-      background: var(--primary);
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: var(--accent);
-    }
-
-    .details {
-      text-align: center;
-      margin-top: 20px;
-      animation: slideIn 1s ease forwards;
-    }
-
-    .poster {
-      width: 280px;
-      border-radius: 10px;
-      margin-top: 15px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
-    }
-
-    .video-player {
-      margin-top: 20px;
-      width: 100%;
-    }
-
-    .footer {
-      margin-top: 40px;
-      color: var(--primary);
-      text-align: center;
+      padding: 10px;
+      background: #222;
       font-size: 14px;
     }
-
     @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
-
-    @keyframes slideIn {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+    /* Page entry animation */
+    #overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      font-size: 32px;
+      font-weight: bold;
+      z-index: 9999;
+      animation: fadeOut 2s ease 1.5s forwards;
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; visibility: hidden; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🎵 YouTube Downloader</h1>
-    <input type="text" id="ytUrl" placeholder="Paste YouTube URL here" />
-
-    <select id="type">
-      <option value="audio">Audio (MP3)</option>
-      <option value="video">Video (MP4)</option>
-    </select>
-
-    <select id="quality" style="display: none;">
-      <option value="360">360p</option>
-      <option value="480">480p</option>
-      <option value="720">720p</option>
-      <option value="1080">1080p</option>
-    </select>
-
-    <button onclick="getInfo()">Fetch Info</button>
-    <button onclick="download()">Download</button>
-
-    <div id="meta" class="details"></div>
-    <div id="player" class="video-player"></div>
-  </div>
-
-  <div class="footer">Made With ❤️ by Sanchit</div>
+  <div id="overlay">Welcome to DS CricStream Platform</div>
+  
+  <header>DS CricStream Platform</header>
+  
+  <main>
+    <video id="video" controls autoplay></video>
+  </main>
+  
+  <footer>Made With ♥️ by Sanchit</footer>
 
   <script>
-    const BACKEND_URL = "https://dsytdldr.onrender.com/proxy";
+    const video = document.getElementById('video');
+    const videoSrc = 'https://dai.google.com/ssai/event/jfZLIA-eQqGOymVqrQstNA/master.m3u8'; // replace with your .m3u8 link
 
-    document.getElementById("type").addEventListener("change", function () {
-      const isVideo = this.value === "video";
-      document.getElementById("quality").style.display = isVideo ? "block" : "none";
-    });
-
-    function getInfo() {
-      const url = document.getElementById("ytUrl").value.trim();
-      if (!url) return alert("Enter YouTube URL");
-
-      fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`)
-        .then(res => res.json())
-        .then(data => {
-          const metaDiv = document.getElementById("meta");
-          metaDiv.innerHTML = `
-            <h3>${data.title}</h3>
-            <p>By: ${data.author_name}</p>
-            <img class="poster" src="${data.thumbnail_url}" alt="Thumbnail"/>
-          `;
-        })
-        .catch(() => alert("❌ Failed to fetch video info."));
-    }
-
-    function download() {
-      const url = document.getElementById("ytUrl").value.trim();
-      const type = document.getElementById("type").value;
-      const quality = document.getElementById("quality").value;
-      const ext = type === "audio" ? "mp3" : quality;
-
-      if (!url) return alert("Enter YouTube URL");
-
-      const fullUrl = `${BACKEND_URL}?url=${encodeURIComponent(url)}&ext=${ext}`;
-
-      if (type === "audio") {
-        const audio = document.createElement("audio");
-        audio.src = fullUrl;
-        audio.controls = true;
-        audio.autoplay = true;
-
-        document.getElementById("player").innerHTML = "";
-        document.getElementById("player").appendChild(audio);
-
-        const a = document.createElement("a");
-        a.href = fullUrl;
-        a.download = "audio.mp3";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } else {
-        document.getElementById("player").innerHTML = `
-          <video width="100%" controls autoplay>
-            <source src="${fullUrl}" type="video/mp4">
-            Your browser does not support video playback.
-          </video>
-        `;
-      }
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(videoSrc);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play();
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = videoSrc;
+      video.addEventListener('loadedmetadata', () => {
+        video.play();
+      });
     }
   </script>
 </body>
